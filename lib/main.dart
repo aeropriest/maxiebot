@@ -1,3 +1,6 @@
+import 'dart:developer';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
@@ -11,7 +14,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 void main() async {
   // await dotenv.load(); // Load the .env file
 
-  // Gemini.init(apiKey: dotenv.env['GOOGLE_API_KEY'] as String);
+  Gemini.init(apiKey: 'AIzaSyB0nJm2NgdjK7IKXolsCdLRf1HhOVjjhnE');
   runApp(const MyApp());
 }
 
@@ -56,16 +59,43 @@ class _MyHomePageState extends State<MyHomePage> {
   String results = "Show results here...";
 
   // late gai.GenerativeModel model;
+  late ImagePicker imagePicker;
   @override
+  initState() {
+    super.initState();
+    imagePicker = ImagePicker();
+  }
   // generate() {
   //   super.initState();
   //   //   model = gai.GenerativeModel(
   //   //       model: "gemini-pro", apiKey: dotenv.env['GOOGLE_API_KEY']);
   // }
 
+  bool imageSelected = false;
+  late File selectedImage;
+
+  pickImage() async {
+    final XFile? image =
+        await imagePicker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      imageSelected = true;
+      selectedImage = File(image.path);
+      ChatMessage message =
+          ChatMessage(user: user, createdAt: DateTime.now(), text: '', medias: [
+        ChatMedia(url: image.path, fileName: image.name, type: MediaType.image)
+      ]);
+      messages.insert(0, message);
+      setState(() {
+        messages;
+      });
+    }
+  }
+
   processInput() async {
-    ChatMessage message = ChatMessage(
-        user: user, createdAt: DateTime.now(), text: controller.text);
+    String userInput = controller.text;
+    ChatMessage message =
+        ChatMessage(user: user, createdAt: DateTime.now(), text: userInput);
     messages.insert(0, message);
     setState(() {
       messages;
@@ -78,15 +108,42 @@ class _MyHomePageState extends State<MyHomePage> {
     // });
 
     final gemini = Gemini.instance;
-    gemini.text(controller.text).then((value) {
-      results = value!.output!;
-      ChatMessage message = ChatMessage(
-          user: geminiUser, createdAt: DateTime.now(), text: results);
-      messages.insert(0, message);
-      setState(() {
-        messages;
-      });
-    }).catchError((e) => print(e));
+    if (imageSelected) {
+      gemini.textAndImage(
+          text: userInput,
+          images: [selectedImage.readAsBytesSync()]).then((value) {
+        results = value!.output!;
+        controller.clear();
+        ChatMessage message = ChatMessage(
+            user: geminiUser, createdAt: DateTime.now(), text: results);
+        messages.insert(0, message);
+        setState(() {
+          messages;
+        });
+      }).then((value) {
+        // log(value?.content?.parts?.last.text ?? '');
+        // ChatMessage message = ChatMessage(
+        //     user: geminiUser,
+        //     createdAt: DateTime.now(),
+        //     text: value?.content?.parts?.last.text);
+        // messages.insert(0, value?.content?.parts?.last.text);
+        // setState(() {
+        //   messages;
+        // });
+      }).catchError((e) => log(e));
+      imageSelected = false;
+    } else {
+      gemini.text(userInput).then((value) {
+        results = value!.output!;
+        controller.clear();
+        ChatMessage message = ChatMessage(
+            user: geminiUser, createdAt: DateTime.now(), text: results);
+        messages.insert(0, message);
+        setState(() {
+          messages;
+        });
+      }).catchError((e) => print(e));
+    }
   }
 
   // void handleDone() {
@@ -209,7 +266,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 InkWell(
                                   child: const Icon(Icons.image),
                                   onTap: () {
-                                    // pickImage();
+                                    pickImage();
                                   },
                                 )
                               ],
