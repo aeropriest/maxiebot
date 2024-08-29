@@ -14,7 +14,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 void main() async {
   // await dotenv.load(); // Load the .env file
 
-  Gemini.init(apiKey: 'AIzaSyB0nJm2NgdjK7IKXolsCdLRf1HhOVjjhnE');
+  Gemini.init(apiKey: '');
   runApp(const MyApp());
 }
 
