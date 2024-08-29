@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
+import 'package:dash_chat_2/dash_chat_2.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:lottie/lottie.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
-void main() {
+void main() async {
+  // await dotenv.load(); // Load the .env file
+
+  // Gemini.init(apiKey: dotenv.env['GOOGLE_API_KEY'] as String);
   runApp(const MyApp());
 }
 
@@ -13,25 +24,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Maxie Bot'),
     );
   }
 }
@@ -55,71 +51,209 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  TextEditingController controller = TextEditingController();
 
-  void _incrementCounter() {
+  String results = "Show results here...";
+
+  // late gai.GenerativeModel model;
+  @override
+  // generate() {
+  //   super.initState();
+  //   //   model = gai.GenerativeModel(
+  //   //       model: "gemini-pro", apiKey: dotenv.env['GOOGLE_API_KEY']);
+  // }
+
+  processInput() async {
+    ChatMessage message = ChatMessage(
+        user: user, createdAt: DateTime.now(), text: controller.text);
+    messages.insert(0, message);
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      messages;
     });
+    // final content = [gai.Content.text(controller.text)];
+    // final response = await model.generateContent(content);
+    // results = response.text!;
+    // setState(() {
+    //   results;
+    // });
+
+    final gemini = Gemini.instance;
+    gemini.text(controller.text).then((value) {
+      results = value!.output!;
+      ChatMessage message = ChatMessage(
+          user: geminiUser, createdAt: DateTime.now(), text: results);
+      messages.insert(0, message);
+      setState(() {
+        messages;
+      });
+    }).catchError((e) => print(e));
   }
 
+  // void handleDone() {
+  //   if (isTTS) {
+  //     flutterTts.speak(results);
+  //   }
+  //   setState(() {
+  //     isLoading = false;
+  //   });
+  // }
+
+  ChatUser user = ChatUser(
+    id: '1',
+    firstName: 'Hamza',
+    lastName: 'Asif',
+  );
+
+  ChatUser geminiUser = ChatUser(
+    id: '2',
+    firstName: 'Gemini',
+    lastName: 'AI',
+  );
+
+  List<ChatMessage> messages = <ChatMessage>[];
+
+  bool isTTS = false;
+  bool isDark = false;
+  bool isLoading = false;
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        backgroundColor: Theme.of(context).primaryColor,
+        title: Text(
+          widget.title,
+          style: const TextStyle(color: Colors.white),
+        ),
+        centerTitle: true,
+        leading: InkWell(
+          child: Padding(
+            padding: const EdgeInsets.all(18.0),
+            child: Icon(
+              isDark ? Icons.sunny : Icons.nightlight_round_rounded,
+              color: Colors.white,
+            ),
+          ),
+          onTap: () {
+            setState(() {
+              if (isDark) {
+                isDark = false;
+              } else {
+                isDark = true;
+              }
+            });
+          },
+        ),
+        actions: [
+          InkWell(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Icon(
+                isTTS ? Icons.surround_sound : Icons.surround_sound_outlined,
+                color: Colors.white,
+              ),
+            ),
+            onTap: () {
+              setState(() {
+                if (isTTS) {
+                  isTTS = false;
+                } else {
+                  isTTS = true;
+                }
+              });
+            },
+          )
+        ],
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+        child: Stack(
+          children: [
+            Container(
+              // decoration: BoxDecoration(
+              //     image: DecorationImage(
+              //         image: const AssetImage("assets/bg.jpg"),
+              //         fit: BoxFit.cover,
+              //         invertColors: isDark)),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  Expanded(
+                    child: DashChat(
+                      currentUser: user,
+                      onSend: (ChatMessage m) {},
+                      messages: messages,
+                      readOnly: true,
+                    ),
+                  ),
+                  //Text(results),
+                  Padding(
+                    padding: const EdgeInsets.all(15.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                            child: Card(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25)),
+                          color: Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 8.0, right: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: controller,
+                                    decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        hintText: "Type here..."),
+                                  ),
+                                ),
+                                InkWell(
+                                  child: const Icon(Icons.image),
+                                  onTap: () {
+                                    // pickImage();
+                                  },
+                                )
+                              ],
+                            ),
+                          ),
+                        )),
+                        ElevatedButton(
+                          onPressed: () {
+                            // _startListening();
+                          },
+                          style: ElevatedButton.styleFrom(
+                              shape: const CircleBorder(),
+                              backgroundColor: Colors.green.shade400,
+                              padding: const EdgeInsets.all(10)),
+                          child: const Icon(
+                            Icons.mic,
+                            color: Colors.white,
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            processInput();
+                          },
+                          style: ElevatedButton.styleFrom(
+                              shape: const CircleBorder(),
+                              backgroundColor: Theme.of(context).primaryColor,
+                              padding: const EdgeInsets.all(10)),
+                          child: const Icon(
+                            Icons.send,
+                            color: Colors.white,
+                          ),
+                        )
+                      ],
+                    ),
+                  )
+                ],
+              ),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            Center(
+              child: isLoading ? Lottie.asset('assets/ai.json') : Container(),
+            )
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
