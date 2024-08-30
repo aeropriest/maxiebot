@@ -6,9 +6,8 @@ import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:flutter_gemini/flutter_gemini.dart';
+// import 'package:speech_to_text/speech_recognition_result.dart';
+// import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 class GeminiResponse {
@@ -46,8 +45,6 @@ class Part {
 }
 
 void main() async {
-  // await dotenv.load(); // Load the .env file
-
   Gemini.init(apiKey: '');
   runApp(const MyApp());
 }
@@ -98,15 +95,37 @@ class _MyHomePageState extends State<MyHomePage> {
   initState() {
     super.initState();
     imagePicker = ImagePicker();
+    _initSpeech();
   }
-  // generate() {
-  //   super.initState();
-  //   //   model = gai.GenerativeModel(
-  //   //       model: "gemini-pro", apiKey: dotenv.env['GOOGLE_API_KEY']);
-  // }
 
   bool imageSelected = false;
   late File selectedImage;
+
+  bool speechEnabled = false;
+
+  String lastWords = "";
+
+  void _initSpeech() async {
+    // speechEnabled = await speechToText.initialize();
+    setState(() {});
+  }
+
+  void _startListening() async {
+    // await speechToText.listen(onResult: _onSpeechResult);
+    setState(() {});
+  }
+
+  void _stopListening() async {
+    // await speechToText.stop();
+    setState(() {});
+  }
+
+  // void _onSpeechResult(SpeechRecognitionResult result) async {
+  //   setState(() {
+  //     lastWords = result.recognizedWords;
+  //     controller.text = lastWords;
+  //   });
+  // }
 
   pickImage() async {
     final XFile? image =
@@ -115,11 +134,11 @@ class _MyHomePageState extends State<MyHomePage> {
     if (image != null) {
       imageSelected = true;
       selectedImage = File(image.path);
-      ChatMessage message =
-          ChatMessage(user: user, createdAt: DateTime.now(), text: '', medias: [
-        ChatMedia(url: image.path, fileName: image.name, type: MediaType.image)
-      ]);
-      messages.insert(0, message);
+      // ChatMessage message =
+      //     ChatMessage(user: user, createdAt: DateTime.now(), text: '', medias: [
+      //   ChatMedia(url: image.path, fileName: image.name, type: MediaType.image)
+      // ]);
+      // messages.insert(0, message);
       setState(() {
         messages;
       });
@@ -128,9 +147,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   processInput() async {
     String userInput = controller.text;
-    ChatMessage message =
-        ChatMessage(user: user, createdAt: DateTime.now(), text: userInput);
-    messages.insert(0, message);
+    // ChatMessage message =
+    //     ChatMessage(user: user, createdAt: DateTime.now(), text: userInput);
+    // messages.insert(0, message);
     setState(() {
       messages;
     });
@@ -153,13 +172,13 @@ class _MyHomePageState extends State<MyHomePage> {
           controller.clear();
 
           // Create a chat message with the results
-          ChatMessage message = ChatMessage(
-            user: geminiUser,
-            createdAt: DateTime.now(),
-            text: results,
-          );
+          // ChatMessage message = ChatMessage(
+          //   user: geminiUser,
+          //   createdAt: DateTime.now(),
+          //   text: results,
+          // );
 
-          messages.insert(0, message);
+          // messages.insert(0, message);
           setState(() {
             messages; // Update the UI
           });
@@ -178,13 +197,13 @@ class _MyHomePageState extends State<MyHomePage> {
           if (value.content.parts.isNotEmpty) {
             log('Last part of content: ${value.content.parts.last.text}');
 
-            ChatMessage message = ChatMessage(
-              user: geminiUser,
-              createdAt: DateTime.now(),
-              text: value.content.parts.last.text,
-            );
+            // ChatMessage message = ChatMessage(
+            //   user: geminiUser,
+            //   createdAt: DateTime.now(),
+            //   text: value.content.parts.last.text,
+            // );
 
-            messages.insert(0, message);
+            // messages.insert(0, message);
             setState(() {
               messages; // Update the UI
             });
@@ -217,13 +236,13 @@ class _MyHomePageState extends State<MyHomePage> {
           controller.clear();
 
           // Create a chat message with the results
-          ChatMessage message = ChatMessage(
-            user: geminiUser,
-            createdAt: DateTime.now(),
-            text: results,
-          );
+          // ChatMessage message = ChatMessage(
+          //   user: geminiUser,
+          //   createdAt: DateTime.now(),
+          //   text: results,
+          // );
 
-          messages.insert(0, message);
+          // messages.insert(0, message);
           setState(() {
             messages; // Update the UI
           });
@@ -274,6 +293,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isTTS = false;
   bool isDark = false;
   bool isLoading = false;
+  // SpeechToText speechToText = SpeechToText();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -388,7 +408,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         )),
                         ElevatedButton(
                           onPressed: () {
-                            // _startListening();
+                            _startListening();
                           },
                           style: ElevatedButton.styleFrom(
                               shape: const CircleBorder(),

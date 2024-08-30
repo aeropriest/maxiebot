@@ -4,8 +4,6 @@
 <dict>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>reason</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>reason</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>reason</string>
     <key>NSCameraUsageDescription</key>
