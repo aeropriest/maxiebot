@@ -200,16 +200,41 @@ class _MyHomePageState extends State<MyHomePage> {
 
       imageSelected = false;
     } else {
-      gemini.text(userInput).then((value) {
-        results = value!.output!;
-        controller.clear();
-        ChatMessage message = ChatMessage(
-            user: geminiUser, createdAt: DateTime.now(), text: results);
-        messages.insert(0, message);
-        setState(() {
-          messages;
-        });
-      }).catchError((e) => print(e));
+      gemini.streamGenerateContent(userInput).listen((value) {
+        log('Got the response...');
+        if (value != null && value.output != null) {
+          results = value.output!;
+          controller.clear();
+
+          // Create a chat message with the results
+          ChatMessage message = ChatMessage(
+            user: geminiUser,
+            createdAt: DateTime.now(),
+            text: results,
+          );
+
+          messages.insert(0, message);
+          setState(() {
+            messages; // Update the UI
+          });
+
+          // Log the output results
+          log('Output results: $results');
+        } else {
+          log('Received null or empty output from the response.');
+        }
+      }).onError((e) => log(e));
+
+      // gemini.text(userInput).then((value) {
+      //   results = value!.output!;
+      //   controller.clear();
+      //   ChatMessage message = ChatMessage(
+      //       user: geminiUser, createdAt: DateTime.now(), text: results);
+      //   messages.insert(0, message);
+      //   setState(() {
+      //     messages;
+      //   });
+      // }).catchError((e) => print(e));
     }
   }
 
