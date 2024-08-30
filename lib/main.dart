@@ -11,6 +11,40 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+class GeminiResponse {
+  final Content content;
+
+  GeminiResponse({required this.content});
+
+  factory GeminiResponse.fromJson(Map<String, dynamic> json) {
+    return GeminiResponse(
+      content: Content.fromJson(json['content']),
+    );
+  }
+}
+
+class Content {
+  final List<Part> parts;
+
+  Content({required this.parts});
+
+  factory Content.fromJson(Map<String, dynamic> json) {
+    var partsList = json['parts'] as List;
+    List<Part> parts = partsList.map((i) => Part.fromJson(i)).toList();
+    return Content(parts: parts);
+  }
+}
+
+class Part {
+  final String text;
+
+  Part({required this.text});
+
+  factory Part.fromJson(Map<String, dynamic> json) {
+    return Part(text: json['text']);
+  }
+}
+
 void main() async {
   // await dotenv.load(); // Load the .env file
 
@@ -100,37 +134,70 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       messages;
     });
-    // final content = [gai.Content.text(controller.text)];
-    // final response = await model.generateContent(content);
-    // results = response.text!;
-    // setState(() {
-    //   results;
-    // });
+
+    log('Processing input...' + userInput);
 
     final gemini = Gemini.instance;
     if (imageSelected) {
+      log('Get the answer for image...');
+
       gemini.textAndImage(
-          text: userInput,
-          images: [selectedImage.readAsBytesSync()]).then((value) {
-        results = value!.output!;
-        controller.clear();
-        ChatMessage message = ChatMessage(
-            user: geminiUser, createdAt: DateTime.now(), text: results);
-        messages.insert(0, message);
-        setState(() {
-          messages;
-        });
+        text: userInput,
+        images: [selectedImage.readAsBytesSync()],
+      ).then((value) {
+        log('Got the response...');
+
+        // Check if the response is not null and has output
+        if (value != null && value.output != null) {
+          results = value.output!;
+          controller.clear();
+
+          // Create a chat message with the results
+          ChatMessage message = ChatMessage(
+            user: geminiUser,
+            createdAt: DateTime.now(),
+            text: results,
+          );
+
+          messages.insert(0, message);
+          setState(() {
+            messages; // Update the UI
+          });
+
+          // Log the output results
+          log('Output results: $results');
+        } else {
+          log('Received null or empty output from the response.');
+        }
       }).then((value) {
-        // log(value?.content?.parts?.last.text ?? '');
-        // ChatMessage message = ChatMessage(
-        //     user: geminiUser,
-        //     createdAt: DateTime.now(),
-        //     text: value?.content?.parts?.last.text);
-        // messages.insert(0, value?.content?.parts?.last.text);
-        // setState(() {
-        //   messages;
-        // });
-      }).catchError((e) => log(e));
+        // Ensure value is of the expected type
+        if (value is GeminiResponse) {
+          log('Processing the response content...');
+
+          // Log the last part of the content
+          if (value.content.parts.isNotEmpty) {
+            log('Last part of content: ${value.content.parts.last.text}');
+
+            ChatMessage message = ChatMessage(
+              user: geminiUser,
+              createdAt: DateTime.now(),
+              text: value.content.parts.last.text,
+            );
+
+            messages.insert(0, message);
+            setState(() {
+              messages; // Update the UI
+            });
+          } else {
+            log('Content parts are empty.');
+          }
+        } else {
+          log('Unexpected response type: ${value.runtimeType}');
+        }
+      }).catchError((e) {
+        log('Error occurred: $e');
+      });
+
       imageSelected = false;
     } else {
       gemini.text(userInput).then((value) {
@@ -252,23 +319,34 @@ class _MyHomePageState extends State<MyHomePage> {
                               borderRadius: BorderRadius.circular(25)),
                           color: Colors.white,
                           child: Padding(
-                            padding: const EdgeInsets.only(left: 8.0, right: 8),
+                            padding: const EdgeInsets.only(left: 2.0, right: 8),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: TextField(
                                     controller: controller,
+                                    style: TextStyle(
+                                      fontSize:
+                                          14.0, // Set the desired font size here
+                                    ),
                                     decoration: const InputDecoration(
+                                        contentPadding:
+                                            EdgeInsets.only(left: 12.0),
                                         border: InputBorder.none,
                                         hintText: "Type here..."),
                                   ),
                                 ),
                                 InkWell(
-                                  child: const Icon(Icons.image),
                                   onTap: () {
                                     pickImage();
                                   },
-                                )
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                        right:
+                                            5.0), // 10px padding on the right
+                                    child: const Icon(Icons.image),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
