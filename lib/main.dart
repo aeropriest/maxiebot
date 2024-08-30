@@ -200,10 +200,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
       imageSelected = false;
     } else {
-      gemini.streamGenerateContent(userInput).listen((value) {
+      bool first = true;
+      gemini
+          .streamGenerateContent(userInput,
+              generationConfig:
+                  GenerationConfig(temperature: 0.7, maxOutputTokens: 256))
+          .listen((value) {
         log('Got the response...');
+        if (first) {
+          first = false;
+        } else {
+          messages.removeAt(0);
+        }
         if (value != null && value.output != null) {
-          results = value.output!;
+          results += value.output!;
           controller.clear();
 
           // Create a chat message with the results
