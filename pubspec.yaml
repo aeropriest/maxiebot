@@ -44,6 +44,7 @@ dependencies:
   lottie: ^3.1.2
   camera: ^0.11.0+2
   speech_to_text: ^7.0.0
+  dart_openai: ^5.1.0
 
 dev_dependencies:
   flutter_test:

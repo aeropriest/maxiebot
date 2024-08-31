@@ -1,218 +1,245 @@
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
+import 'package:dart_openai/dart_openai.dart';
 
-late List<CameraDescription> cameras;
+void main() async {
+  runApp(const MyApp());
+  OpenAI.apiKey = '';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  cameras = await availableCameras();
-
-  // Get the front camera
-  CameraDescription frontCamera = cameras.firstWhere(
-    (camera) => camera.lensDirection == CameraLensDirection.front,
-  );
-
-  runApp(CameraApp(camera: frontCamera));
+  await Gemini.init(
+      apiKey:
+          'AIzaSyB9sU_QRwE8hYt1lkh6vK0xBkJ5M6Tgbx8'); // Replace with your actual API key
 }
 
-class CameraApp extends StatelessWidget {
-  final CameraDescription camera;
-
-  const CameraApp({Key? key, required this.camera}) : super(key: key);
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: CameraScreen(camera: camera),
+      title: 'Gappu App',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class CameraScreen extends StatefulWidget {
-  final CameraDescription camera;
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key, required this.title});
 
-  const CameraScreen({Key? key, required this.camera}) : super(key: key);
+  final String title;
 
   @override
-  _CameraScreenState createState() => _CameraScreenState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _CameraScreenState extends State<CameraScreen> {
-  late CameraController controller;
-  late Future<void> initializeControllerFuture;
-  late stt.SpeechToText _speechToText;
-  late FlutterTts tts; // Initialize Flutter TTS
+class _MyHomePageState extends State<MyHomePage> {
+  final TextEditingController _controller = TextEditingController();
+  final List<ChatMessage> _messages = [];
+  final ScrollController _scrollController = ScrollController();
 
-  bool _speechEnabled = false;
-  String _lastWords = '';
+  void _sendMessage() {
+    final userInput = _controller.text;
 
-  @override
-  void initState() {
-    super.initState();
-    Gemini.init(
-        apiKey: 'AIzaSyB9sU_QRwE8hYt1lkh6vK0xBkJ5M6Tgbx8',
-        enableDebugging: true);
+    if (userInput.isNotEmpty) {
+      // Add user question to the messages list
+      setState(() {
+        _messages.add(ChatMessage(
+          user: true,
+          createdAt: DateTime.now(),
+          text: userInput,
+        ));
+      });
 
-    controller = CameraController(
-      widget.camera,
-      ResolutionPreset.max,
-    );
-    initializeControllerFuture = controller.initialize();
-    _initSpeech();
-    tts = FlutterTts(); // Initialize TTS
-  }
+      // Call Gemini API to get the answer
+      final gemini = Gemini.instance;
 
-  Future<void> _initSpeech() async {
-    _speechToText = stt.SpeechToText();
-    _speechEnabled = await _speechToText.initialize();
-    if (_speechEnabled) {
-      _startListening();
-    }
-    setState(() {});
-  }
+      gemini.text(userInput).then((value) {
+        final results = value?.output ?? 'No response';
+        _controller.clear(); // Clear the text field after sending
 
-  Future<void> _getGeminiResponse(question) async {
-    final gemini = Gemini.instance;
-
-    var result = "";
-    // gemini.textAndImage(
-    //   text: _lastWords,
-    //   images: [selectedImage.readAsBytesSync()],
-    // ).then((value) {
-    //   log('Got the response...');
-
-    //   // Check if the response is not null and has output
-    //   if (value != null && value.output != null) {
-    //     results = value.output!;
-    //   }
-    // };
-
-    var prompt =
-        "Pretend you are talking to a 4-8 years old child, answer the following question in simple words, keep the conversation playful and engaging by asking a leading question " +
-            question;
-    print(prompt);
-    gemini.text(prompt).then((value) {
-      String results = "Show results here...";
-      results = value!.output!;
-      _speak(results);
-    }).catchError((e) => print(e));
-  }
-
-  Future<void> _speak(text) async {
-    await tts.setLanguage("en-US");
-    await tts.setPitch(1.0);
-    await tts.speak(text);
-  }
-
-  void _startListening() {
-    _speechToText.listen(
-      onResult: (val) {
+        // Add the response to the messages list
         setState(() {
-          print('set here 3');
-          _lastWords = val.recognizedWords;
-          print(_lastWords.length);
+          _messages.add(ChatMessage(
+            user: false,
+            createdAt: DateTime.now(),
+            text: results,
+          ));
         });
 
-        // Call _speak here to convert the recognized words to speech
-        // _speak(_lastWords); // Example text
-        _getGeminiResponse(_lastWords);
-      },
-      // Uncomment this if you want to restart listening when done
-      // onDone: () {
-      //   _startListening();
-      // },
-    );
-  }
-
-  void _handleSpeech() async {
-    if (!_speechToText.isListening) {
-      bool available = await _speechToText.initialize(
-        onStatus: (val) => print('onStatus: $val'),
-        onError: (val) => print('onError: $val'),
-      );
-      print('available: $available');
-      if (available) {
-        _speechToText.listen(
-          onResult: (val) {
-            setState(() {
-              print('set here 1');
-              _lastWords = val.recognizedWords;
-            });
-          },
-        );
-      }
-    } else {
-      print('listen mode');
-      _speechToText.listen(
-        onResult: (val) {
-          setState(() {
-            print('set here 2');
-            _lastWords = val.recognizedWords;
-          });
-        },
-      );
-      _speechToText.stop();
+        // Scroll to the bottom of the list
+        _scrollToBottom();
+      }).catchError((e) {
+        print(e);
+      });
     }
-    setState(() {});
+  }
+
+// Future<String> getOpenAIResponse(String userInput) async {
+//   final chatCompletion = await OpenAI.instance.chat.create(
+//     model: "gpt-3.5-turbo", // You can also use "gpt-4" if you have access
+//     messages: [
+//       OpenAIChatCompletionChoiceMessageModel(
+//         content: userInput,
+//         role: OpenAIChatMessageRole.user,
+//       ),
+//     ],
+//   );
+
+//   return chatCompletion.choices.first.message.content;
+// }
+
+  void _scrollToBottom() {
+    // Ensure the list view is scrolled to the bottom
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    }
   }
 
   @override
-  void dispose() {
-    controller.dispose();
-    _speechToText.stop();
-    super.dispose();
-  }
-
-  @override
+  // Widget build(BuildContext context) {
+  //   return Scaffold(
+  //     appBar: AppBar(
+  //       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+  //       title: Text(widget.title),
+  //     ),
+  //     body: Column(
+  //       children: [
+  //         Expanded(
+  //           child: ListView.builder(
+  //             itemCount: _messages.length,
+  //             itemBuilder: (context, index) {
+  //               return ListTile(
+  //                 title: Text(_messages[index]),
+  //               );
+  //             },
+  //           ),
+  //         ),
+  //         Padding(
+  //           padding: const EdgeInsets.all(8.0),
+  //           child: Row(
+  //             children: [
+  //               Expanded(
+  //                 child: TextField(
+  //                   controller: _controller,
+  //                   decoration: InputDecoration(
+  //                     hintText: 'Type your message...',
+  //                     border: OutlineInputBorder(
+  //                       borderRadius: BorderRadius.circular(30.0),
+  //                     ),
+  //                     contentPadding: const EdgeInsets.symmetric(
+  //                       vertical: 10.0,
+  //                       horizontal: 20.0,
+  //                     ),
+  //                   ),
+  //                 ),
+  //               ),
+  //               IconButton(
+  //                 icon: const Icon(Icons.send),
+  //                 onPressed: _sendMessage,
+  //                 iconSize: 30,
+  //                 color: Colors.blue,
+  //                 padding: const EdgeInsets.all(8.0),
+  //                 constraints: BoxConstraints(),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
   Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: initializeControllerFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return Scaffold(
-            body: Stack(
-              children: [
-                // Camera Preview
-                // Camera Preview
-                FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    height: MediaQuery.of(context).size.height,
-                    child: CameraPreview(controller),
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(widget.title),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final ChatMessage message = _messages[index];
+                final isUserMessage = message.user;
+
+                return Container(
+                  margin:
+                      const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: isUserMessage ? Colors.grey.shade300 : Colors.white,
+                    border: Border(
+                      top: BorderSide(color: Colors.grey.shade800, width: 2),
+                      bottom: BorderSide(color: Colors.grey.shade800, width: 2),
+                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                ),
-                Positioned(
-                  bottom: 0, // Adjust as needed
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    color: Colors.black54,
-                    child: Text(
-                      // _lastWords.length > 60
-                      //     ? _lastWords.substring(
-                      //         _lastWords.length - 60, _lastWords.length)
-                      //     : _lastWords,
-                      _lastWords,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
+                  child: ListTile(
+                    leading: isUserMessage
+                        ? Icon(Icons.question_answer, color: Colors.blue)
+                        : null,
+                    title: Text(
+                      message.text,
+                      textAlign:
+                          isUserMessage ? TextAlign.left : TextAlign.right,
+                    ),
+                    trailing: isUserMessage
+                        ? null
+                        : Icon(Icons.send, color: Colors.green),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      hintText: 'Type your question...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30.0),
                       ),
-                      textAlign: TextAlign.center,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 10.0,
+                        horizontal: 20.0,
+                      ),
                     ),
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _sendMessage,
+                  iconSize: 30,
+                  color: Colors.blue,
+                  padding: const EdgeInsets.all(8.0),
+                  constraints: BoxConstraints(),
+                ),
               ],
             ),
-          );
-        } else {
-          return Center(child: CircularProgressIndicator());
-        }
-      },
+          ),
+        ],
+      ),
     );
   }
+}
+
+class ChatMessage {
+  final bool user;
+  final DateTime createdAt;
+  final String text;
+
+  ChatMessage({
+    required this.user,
+    required this.createdAt,
+    required this.text,
+  });
 }
