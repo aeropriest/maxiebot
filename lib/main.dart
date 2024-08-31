@@ -59,13 +59,29 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> _initSpeech() async {
     _speechToText = stt.SpeechToText();
     _speechEnabled = await _speechToText.initialize();
+    if (_speechEnabled) {
+      _startListening();
+    }
     setState(() {});
   }
 
+  void _startListening() {
+    _speechToText.listen(
+      onResult: (val) {
+        setState(() {
+          print('set here 3');
+          _lastWords = val.recognizedWords.split('\n').first;
+          print(_lastWords.length);
+        });
+      },
+      // onDone: () {
+      //   // Restart listening when done
+      //   _startListening();
+      // },
+    );
+  }
+
   void _handleSpeech() async {
-    _speechToText.isListening
-        ? print('speech is listening')
-        : print('speech is not listening');
     if (!_speechToText.isListening) {
       bool available = await _speechToText.initialize(
         onStatus: (val) => print('onStatus: $val'),
@@ -76,12 +92,9 @@ class _CameraScreenState extends State<CameraScreen> {
         _speechToText.listen(
           onResult: (val) {
             setState(() {
+              print('set here 1');
               _lastWords = val.recognizedWords;
             });
-            if (_lastWords.toLowerCase().contains('hey maxie')) {
-              // Perform action when wake word is detected
-              print("Wake word detected!");
-            }
           },
         );
       }
@@ -90,13 +103,9 @@ class _CameraScreenState extends State<CameraScreen> {
       _speechToText.listen(
         onResult: (val) {
           setState(() {
+            print('set here 2');
             _lastWords = val.recognizedWords;
-            print(_lastWords.toString());
           });
-          if (_lastWords.toLowerCase().contains('hey maxie')) {
-            // Perform action when wake word is detected
-            print("Wake word detected!");
-          }
         },
       );
       _speechToText.stop();
@@ -130,32 +139,22 @@ class _CameraScreenState extends State<CameraScreen> {
                     child: CameraPreview(controller),
                   ),
                 ),
-                // Circular Microphone Button
                 Positioned(
-                  bottom: 40,
-                  left: MediaQuery.of(context).size.width / 2 -
-                      35, // Center the button
-                  child: GestureDetector(
-                    onTap: () {
-                      _speechEnabled
-                          ? print('speech is enabled')
-                          : print('speech is disabled');
-                      if (_speechEnabled) _handleSpeech();
-                    },
-                    child: Container(
-                      width: 70, // Width of the circular button
-                      height: 70, // Height of the circular button
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
+                  bottom: 100, // Adjust as needed
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    color: Colors.black54,
+                    child: Text(
+                      _lastWords.length > 30
+                          ? _lastWords.substring(0, _lastWords.length - 30)
+                          : _lastWords,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
                       ),
-                      child: Center(
-                        child: Icon(
-                          Icons.mic,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
