@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 late List<CameraDescription> cameras;
 
@@ -40,6 +41,9 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   late CameraController controller;
   late Future<void> initializeControllerFuture;
+  late stt.SpeechToText _speechToText;
+  bool _speechEnabled = false;
+  String _lastWords = '';
 
   @override
   void initState() {
@@ -49,11 +53,61 @@ class _CameraScreenState extends State<CameraScreen> {
       ResolutionPreset.max,
     );
     initializeControllerFuture = controller.initialize();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    _speechToText = stt.SpeechToText();
+    _speechEnabled = await _speechToText.initialize();
+    setState(() {});
+  }
+
+  void _handleSpeech() async {
+    _speechToText.isListening
+        ? print('speech is listening')
+        : print('speech is not listening');
+    if (!_speechToText.isListening) {
+      bool available = await _speechToText.initialize(
+        onStatus: (val) => print('onStatus: $val'),
+        onError: (val) => print('onError: $val'),
+      );
+      print('available: $available');
+      if (available) {
+        _speechToText.listen(
+          onResult: (val) {
+            setState(() {
+              _lastWords = val.recognizedWords;
+            });
+            if (_lastWords.toLowerCase().contains('hey maxie')) {
+              // Perform action when wake word is detected
+              print("Wake word detected!");
+            }
+          },
+        );
+      }
+    } else {
+      print('listen mode');
+      _speechToText.listen(
+        onResult: (val) {
+          setState(() {
+            _lastWords = val.recognizedWords;
+            print(_lastWords.toString());
+          });
+          if (_lastWords.toLowerCase().contains('hey maxie')) {
+            // Perform action when wake word is detected
+            print("Wake word detected!");
+          }
+        },
+      );
+      _speechToText.stop();
+    }
+    setState(() {});
   }
 
   @override
   void dispose() {
     controller.dispose();
+    _speechToText.stop();
     super.dispose();
   }
 
@@ -67,18 +121,14 @@ class _CameraScreenState extends State<CameraScreen> {
             body: Stack(
               children: [
                 // Camera Preview
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Transform.scale(
-                        scale: controller.value.aspectRatio /
-                            (constraints.maxWidth / constraints.maxHeight),
-                        child: Center(
-                          child: AspectRatio(
-                            aspectRatio: controller.value.aspectRatio,
-                            child: CameraPreview(controller),
-                          ),
-                        ));
-                  },
+                // Camera Preview
+                FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    height: MediaQuery.of(context).size.height,
+                    child: CameraPreview(controller),
+                  ),
                 ),
                 // Circular Microphone Button
                 Positioned(
@@ -87,8 +137,10 @@ class _CameraScreenState extends State<CameraScreen> {
                       35, // Center the button
                   child: GestureDetector(
                     onTap: () {
-                      // Add your microphone button action here
-                      print("Microphone button pressed");
+                      _speechEnabled
+                          ? print('speech is enabled')
+                          : print('speech is disabled');
+                      if (_speechEnabled) _handleSpeech();
                     },
                     child: Container(
                       width: 70, // Width of the circular button
