@@ -4,11 +4,11 @@ import 'package:dart_openai/dart_openai.dart';
 
 void main() async {
   runApp(const MyApp());
-  OpenAI.apiKey = '';
+  // OpenAI.apiKey = '';
 
   await Gemini.init(
       apiKey:
-          'AIzaSyB9sU_QRwE8hYt1lkh6vK0xBkJ5M6Tgbx8'); // Replace with your actual API key
+          'AIzaSyAAF2ge_4OszRJdJVT7fPpJtxMZuQ--o_Y'); // Replace with your actual API key
 }
 
 class MyApp extends StatelessWidget {
@@ -61,36 +61,55 @@ class _MyHomePageState extends State<MyHomePage> {
         final results = value?.output ?? 'No response';
         _controller.clear(); // Clear the text field after sending
 
-        // Add the response to the messages list
-        setState(() {
-          _messages.add(ChatMessage(
-            user: false,
-            createdAt: DateTime.now(),
-            text: results,
-          ));
-        });
-
-        // Scroll to the bottom of the list
-        _scrollToBottom();
-      }).catchError((e) {
-        print(e);
+        if (value != null && value.output != null) {
+          print(value.output);
+          _controller.clear();
+          setState(() {
+            _messages.add(ChatMessage(
+              user: false,
+              createdAt: DateTime.now(),
+              text: results,
+            ));
+          });
+          _scrollToBottom();
+        }
       });
+
+      // // Scroll to the bottom of the list
+
+      // }).catchError((e) {
+      //   print(e);
+      // });
+      // bool first = true;
+      // print(userInput);
+      // gemini
+      //     .streamGenerateContent(userInput,
+      //         generationConfig:
+      //             GenerationConfig(temperature: 0.7, maxOutputTokens: 256))
+      //     .listen((value) {
+      //   print('Got the response...');
+      // if (value != null && value.output != null) {
+      //   print(value.output);
+      //   _controller.clear();
+      //   setState(() {
+      //     _messages.add(ChatMessage(
+      //       user: false,
+      //       createdAt: DateTime.now(),
+      //       text: value?.output ?? 'No response',
+      //     ));
+      //   });
+
+      //     // Scroll to the bottom of the list
+      //     _scrollToBottom();
+
+      //     // Log the output results
+      //     print('Output results: $value');
+      //   } else {
+      //     print('Received null or empty output from the response.');
+      //   }
+      // }).onError((e) => print(e));
     }
   }
-
-// Future<String> getOpenAIResponse(String userInput) async {
-//   final chatCompletion = await OpenAI.instance.chat.create(
-//     model: "gpt-3.5-turbo", // You can also use "gpt-4" if you have access
-//     messages: [
-//       OpenAIChatCompletionChoiceMessageModel(
-//         content: userInput,
-//         role: OpenAIChatMessageRole.user,
-//       ),
-//     ],
-//   );
-
-//   return chatCompletion.choices.first.message.content;
-// }
 
   void _scrollToBottom() {
     // Ensure the list view is scrolled to the bottom
@@ -100,58 +119,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
-  // Widget build(BuildContext context) {
-  //   return Scaffold(
-  //     appBar: AppBar(
-  //       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-  //       title: Text(widget.title),
-  //     ),
-  //     body: Column(
-  //       children: [
-  //         Expanded(
-  //           child: ListView.builder(
-  //             itemCount: _messages.length,
-  //             itemBuilder: (context, index) {
-  //               return ListTile(
-  //                 title: Text(_messages[index]),
-  //               );
-  //             },
-  //           ),
-  //         ),
-  //         Padding(
-  //           padding: const EdgeInsets.all(8.0),
-  //           child: Row(
-  //             children: [
-  //               Expanded(
-  //                 child: TextField(
-  //                   controller: _controller,
-  //                   decoration: InputDecoration(
-  //                     hintText: 'Type your message...',
-  //                     border: OutlineInputBorder(
-  //                       borderRadius: BorderRadius.circular(30.0),
-  //                     ),
-  //                     contentPadding: const EdgeInsets.symmetric(
-  //                       vertical: 10.0,
-  //                       horizontal: 20.0,
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ),
-  //               IconButton(
-  //                 icon: const Icon(Icons.send),
-  //                 onPressed: _sendMessage,
-  //                 iconSize: 30,
-  //                 color: Colors.blue,
-  //                 padding: const EdgeInsets.all(8.0),
-  //                 constraints: BoxConstraints(),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -170,27 +137,24 @@ class _MyHomePageState extends State<MyHomePage> {
 
                 return Container(
                   margin:
-                      const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                      const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
                   decoration: BoxDecoration(
-                    color: isUserMessage ? Colors.grey.shade300 : Colors.white,
-                    border: Border(
-                      top: BorderSide(color: Colors.grey.shade800, width: 2),
-                      bottom: BorderSide(color: Colors.grey.shade800, width: 2),
-                    ),
-                    borderRadius: BorderRadius.circular(10),
+                    color: isUserMessage
+                        ? const Color.fromARGB(255, 216, 239, 255)
+                        : Colors.white,
                   ),
                   child: ListTile(
                     leading: isUserMessage
                         ? Icon(Icons.question_answer, color: Colors.blue)
-                        : null,
+                        : Icon(Icons.send, color: Colors.green),
                     title: Text(
                       message.text,
-                      textAlign:
-                          isUserMessage ? TextAlign.left : TextAlign.right,
+                      // textAlign:
+                      //     isUserMessage ? TextAlign.right : TextAlign.left,
                     ),
-                    trailing: isUserMessage
-                        ? null
-                        : Icon(Icons.send, color: Colors.green),
+                    // trailing: isUserMessage
+                    //     ? null
+                    //     : Icon(Icons.send, color: Colors.green),
                   ),
                 );
               },
