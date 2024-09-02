@@ -115,7 +115,8 @@ class _CameraScreenState extends State<CameraScreen> {
         dotenv.env['PORCUPIN_API_KEY'] ?? '',
         [
           "assets/hey-buddy_en_ios_v3_0_0.ppn",
-          "assets/tell-me_en_ios_v3_0_0.ppn"
+          "assets/tell-me_en_ios_v3_0_0.ppn",
+          "assets/what-do-you-see_en_ios_v3_0_0"
         ],
         _wakeWordCallback,
       );
@@ -184,6 +185,9 @@ class _CameraScreenState extends State<CameraScreen> {
         print(question);
         _getGeminiResponse(question);
       }
+    }
+    if (keywordIndex == 2) {
+      //take the photo from the camera and describe it to the user
     }
   }
 
