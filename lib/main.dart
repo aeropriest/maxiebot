@@ -8,10 +8,11 @@ import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:async';
 
-const bool enableGemini = false;
+const bool enableGemini = true;
 
-var doodleCounter = 0;
-var wakeup = false;
+const wakeStart = "hey buddy";
+const wakeEnd = "tell me";
+var question = "";
 
 PorcupineManager? _porcupineManager;
 
@@ -100,7 +101,10 @@ class _CameraScreenState extends State<CameraScreen> {
       print('enable porcupine in');
       _porcupineManager = await PorcupineManager.fromKeywordPaths(
         dotenv.env['PORCUPIN_API_KEY'] ?? '',
-        ["assets/doodle_en_ios_v3_0_0.ppn"],
+        [
+          "assets/hey-buddy_en_ios_v3_0_0.ppn",
+          "assets/tell-me_en_ios_v3_0_0.ppn"
+        ],
         _wakeWordCallback,
       );
 
@@ -145,13 +149,20 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _wakeWordCallback(int keywordIndex) {
+    print(keywordIndex);
     if (keywordIndex == 0) {
-      // Custom wake word detected
-      print('<==========Inside the Wake word detected =======>');
-      print(doodleCounter++);
-      wakeup = true;
-      _startSilenceTimer();
-      _question = "";
+      print('<========== Hey Buddy Wake Up =======>');
+    }
+    if (keywordIndex == 1) {
+      print('<========== Tell Me Sleep =======>');
+      print(_lastWords);
+      var lastIndex = _lastWords.lastIndexOf(wakeStart);
+      if (lastIndex > 0 - 1) {
+        question = _lastWords.substring(lastIndex + wakeStart.length);
+        print(question);
+        _getGeminiResponse(question);
+        // print('Substring from the last occurrence of "${searchTerm}": "${result.trim()}"`);
+      }
     }
   }
 
@@ -161,57 +172,9 @@ class _CameraScreenState extends State<CameraScreen> {
         setState(() {
           _lastWords = val.recognizedWords;
         });
-
-        // Reset the silence timer if speech is detected
-        _resetSilenceTimer();
-
-        // Call _speak here to convert the recognized words to speech
-        // _speak(_lastWords); // Example text
       },
     );
   }
-
-  void _startSilenceTimer() {
-    _silenceTimer?.cancel(); // Cancel any existing timer
-    _silenceTimer = Timer(Duration(microseconds: 5000), () {
-      // This block will execute after 1 second of silence
-      print(_lastWords);
-      var i = _lastWords.toLowerCase().indexOf('doodle');
-
-      if (i > 0) {
-        var ask = _lastWords.substring(i, _lastWords.length - 1);
-        print('<------ ask this ------>');
-        print(i);
-        print(ask);
-      }
-    });
-  }
-
-  void _resetSilenceTimer() {
-    _silenceTimer?.cancel(); // Cancel the timer if speech is detected
-  }
-  // void _handleSpeech() async {
-  //   if (!_speechToText.isListening) {
-  //     bool available = await _speechToText.initialize(
-  //       onStatus: (val) => print('onStatus: $val'),
-  //       onError: (val) => print('onError: $val'),
-  //     );
-  //     print('available: $available');
-  //     if (available) {
-  //       _speechToText.listen(
-  //         onResult: (val) {
-  //           setState(() {
-  //             print('2 <---------Inside the Wake word detected-------->');
-
-  //             _lastWords = val.recognizedWords;
-  //             print(val.recognizedWords);
-  //           });
-  //         },
-  //       );
-  //     }
-  //   }
-  //   setState(() {});
-  // }
 
   @override
   void dispose() {
