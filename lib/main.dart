@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -7,8 +8,7 @@ import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:async';
-
-const bool enableGemini = true;
+// import 'package:gallery_saver/gallery_saver.dart';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -61,19 +61,14 @@ class _CameraScreenState extends State<CameraScreen> {
   late FlutterTts tts; // Initialize Flutter TTS
 
   bool _speechEnabled = false;
-  String _question = '';
   String _lastWords = '';
-  Timer? _silenceTimer;
-  bool wakeup = false;
 
   @override
   void initState() {
     super.initState();
     print(dotenv.env.toString());
-    if (enableGemini) {
-      Gemini.init(
-          apiKey: dotenv.env['GOOGLE_API_KEY'] ?? '', enableDebugging: true);
-    }
+    Gemini.init(
+        apiKey: dotenv.env['GOOGLE_API_KEY'] ?? '', enableDebugging: true);
 
     controller = CameraController(
       widget.camera,
@@ -116,7 +111,7 @@ class _CameraScreenState extends State<CameraScreen> {
         [
           "assets/hey-buddy_en_ios_v3_0_0.ppn",
           "assets/tell-me_en_ios_v3_0_0.ppn",
-          "assets/what-do-you-see_en_ios_v3_0_0"
+          "assets/what-do-you-see_en_ios_v3_0_0.ppn"
         ],
         _wakeWordCallback,
       );
@@ -128,22 +123,8 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _getGeminiResponse(question) async {
+  Future<void> _getGeminiTextResponse(question) async {
     final gemini = Gemini.instance;
-
-    var result = "";
-    // gemini.textAndImage(
-    //   text: _lastWords,
-    //   images: [selectedImage.readAsBytesSync()],
-    // ).then((value) {
-    //   log('Got the response...');
-
-    //   // Check if the response is not null and has output
-    //   if (value != null && value.output != null) {
-    //     results = value.output!;
-    //   }
-    // };
-
     var prompt =
         "Pretend you are talking to a 4-8 years old child, answer the following question in simple words, keep the conversation playful and engaging by asking a leading question " +
             question;
@@ -156,38 +137,78 @@ class _CameraScreenState extends State<CameraScreen> {
         (e) => print('<-!!!!  error in gemini query !!!!->' + e.message));
   }
 
+  Future<void> _getGeminiImageResponse(image) async {
+    final gemini = Gemini.instance;
+
+    var result = "";
+    gemini.textAndImage(
+      text: _lastWords,
+      images: [await image.readAsBytesSync()],
+    ).then((value) {
+// Check if the response is not null and has output
+      if (value != null && value.output != null) {
+        String results = value.output!;
+        print('Image description: ' + results);
+        _speak(results);
+      }
+    });
+
+    var prompt =
+        "Pretend you are talking to a 4-8 years old child, look at the below image and answer the child what you see in the image in simple words, keep the conversation playful and engaging by asking a leading question " +
+            question;
+    // print(prompt);
+    gemini.text(prompt).then((value) {
+      String results = "Show results here...";
+      results = value!.output!;
+      _speak(results);
+    }).catchError(
+        (e) => print('<-!!!!  error in gemini query !!!!->' + e.message));
+
+    // await _saveImageToGallery(image);
+  }
+
+  // Future<void> _saveImageToGallery(XFile image) async {
+  //   final directory = await getApplicationDocumentsDirectory();
+  //   final imagePath = '${directory.path}/image.jpg';
+  //   await image.saveTo(imagePath);
+
+  //   // Save the image to the camera roll
+  //   await GallerySaver.saveImage(imagePath);
+  // }
+
   Future<void> _speak(text) async {
     voices = await tts.getVoices;
-    // Filter voices if needed, e.g., only English voices
-    // voices = voices.where((voice) => voice['name'].contains('en')).toList();
-    print('-------- voices --------------------------------');
-    for (var i = 0; i < voices.length; i++) {
-      voices[i];
-    }
-
-    print('-------- voices --------------------------------');
-
-    await tts.setLanguage("en-US");
-    await tts.setPitch(1.0);
+    // await tts.setLanguage("en-US");
+    // await tts.setPitch(1.0);
     await tts.speak(text);
   }
 
-  void _wakeWordCallback(int keywordIndex) {
+  void _wakeWordCallback(int keywordIndex) async {
     if (keywordIndex == 0) {
       print('<========== Hey Buddy Wake Up =======>');
     }
     if (keywordIndex == 1) {
-      print('<========== Tell Me Sleep =======>');
+      print('<========== Tell Me =======>');
       // print(_lastWords);
       var lastIndex = _lastWords.lastIndexOf(wakeStart);
       if (lastIndex > 0 - 1) {
+        print('<========== what do you see =======>');
         question = _lastWords.substring(lastIndex + wakeStart.length);
         print(question);
-        _getGeminiResponse(question);
+        _getGeminiTextResponse(question);
       }
     }
+    // tell the user what you see in the image
     if (keywordIndex == 2) {
-      //take the photo from the camera and describe it to the user
+      await controller.takePicture().then((value) {
+        if (value != null) {
+          File image = File(value.path);
+          print(value.path);
+          // InputImage inputImage = InputImage.fromFile(this.widget.image);
+          // Send the image to _getGeminiImageResponse
+          _getGeminiImageResponse(image);
+        }
+      });
     }
   }
 
@@ -234,18 +255,18 @@ class _CameraScreenState extends State<CameraScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     color: Colors.black54,
-                    // child: Text(
-                    //   // _lastWords.length > 60
-                    //   //     ? _lastWords.substring(
-                    //   //         _lastWords.length - 60, _lastWords.length)
-                    //   //     : _lastWords,
-                    //   _lastWords,
-                    //   style: const TextStyle(
-                    //     color: Colors.white,
-                    //     fontSize: 24,
-                    //   ),
-                    //   textAlign: TextAlign.center,
-                    // ),
+                    child: Text(
+                      // _lastWords.length > 60
+                      //     ? _lastWords.substring(
+                      //         _lastWords.length - 60, _lastWords.length)
+                      //     : _lastWords,
+                      _lastWords,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ],

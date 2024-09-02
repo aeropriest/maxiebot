@@ -73,6 +73,7 @@ flutter:
       - assets/doodle_en_ios_v3_0_0.ppn
       - assets/hey-buddy_en_ios_v3_0_0.ppn
       - assets/tell-me_en_ios_v3_0_0.ppn
+      - assets/what-do-you-see_en_ios_v3_0_0.ppn
       - .env
 
   #   - images/a_dot_burr.jpeg
