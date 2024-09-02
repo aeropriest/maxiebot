@@ -3,6 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
+import 'package:porcupine_flutter/porcupine_manager.dart';
+import 'package:porcupine_flutter/porcupine_error.dart';
+
+const String porcupineAccessKey =
+    "zN+2y2D/F1q2O6Atrv2soMYhzdZ9I4LmNK4NCS055Ko20moJ5Aj4tQ=="; // Replace with your AccessKey
+const String geminiAccessKey = "AIzaSyB9sU_QRwE8hYt1lkh6vK0xBkJ5M6Tgbx8";
+
+const bool enableGemini = false;
+const bool enableSpeechToText = true;
+var doogleCounter = 0;
+
+PorcupineManager? _porcupineManager;
 
 late List<CameraDescription> cameras;
 
@@ -52,17 +64,21 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
-    Gemini.init(
-        apiKey: 'AIzaSyB9sU_QRwE8hYt1lkh6vK0xBkJ5M6Tgbx8',
-        enableDebugging: true);
+    if (enableGemini) {
+      Gemini.init(apiKey: geminiAccessKey, enableDebugging: true);
+    }
 
     controller = CameraController(
       widget.camera,
       ResolutionPreset.max,
     );
+
     initializeControllerFuture = controller.initialize();
-    _initSpeech();
+    if (enableSpeechToText) {
+      _initSpeech();
+    }
     tts = FlutterTts(); // Initialize TTS
+    _initiPorcupine();
   }
 
   Future<void> _initSpeech() async {
@@ -72,6 +88,37 @@ class _CameraScreenState extends State<CameraScreen> {
       _startListening();
     }
     setState(() {});
+  }
+
+  void _initiPorcupine() async {
+    try {
+      print('enable porcupine in');
+      _porcupineManager = await PorcupineManager.fromKeywordPaths(
+        porcupineAccessKey,
+        ["assets/doodle_en_ios_v3_0_0.ppn"], // Path to your .ppn file
+        _wakeWordCallback,
+      );
+      // _porcupineManager = await PorcupineManager.fromBuiltInKeywords(
+      //     porcupineAccessKey,
+      //     [BuiltInKeyword.PICOVOICE, BuiltInKeyword.PORCUPINE],
+      //     _wakeWordCallback);
+      await _porcupineManager?.start();
+    } on PorcupineException catch (err) {
+      // Handle initialization error
+      print('failed to initialize Porcupine');
+      print('Failed to initialize Porcupine: ${err.message}');
+    }
+  }
+
+  void _wakeWordCallback(int keywordIndex) {
+    // print('<========== Wake word detected =======>');
+    // print(keywordIndex);
+    if (keywordIndex == 0) {
+      // Custom wake word detected
+      // Do something
+      print('<==========Inside the Wake word detected =======>');
+      print(doogleCounter++);
+    }
   }
 
   Future<void> _getGeminiResponse(question) async {
@@ -111,14 +158,14 @@ class _CameraScreenState extends State<CameraScreen> {
     _speechToText.listen(
       onResult: (val) {
         setState(() {
-          print('set here 3');
           _lastWords = val.recognizedWords;
-          print(_lastWords.length);
         });
 
         // Call _speak here to convert the recognized words to speech
         // _speak(_lastWords); // Example text
-        _getGeminiResponse(_lastWords);
+        if (enableGemini) {
+          _getGeminiResponse(_lastWords);
+        }
       },
       // Uncomment this if you want to restart listening when done
       // onDone: () {
@@ -162,7 +209,11 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void dispose() {
     controller.dispose();
-    _speechToText.stop();
+    if (enableSpeechToText) {
+      _speechToText.stop();
+    }
+    _porcupineManager?.stop();
+    _porcupineManager?.delete();
     super.dispose();
   }
 

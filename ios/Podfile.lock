@@ -4,11 +4,20 @@ PODS:
   - Flutter (1.0.0)
   - flutter_tts (0.0.1):
     - Flutter
+  - flutter_voice_processor (1.1.1):
+    - Flutter
+    - ios-voice-processor (~> 1.1.0)
   - image_picker_ios (0.0.1):
     - Flutter
+  - ios-voice-processor (1.1.0)
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
+  - Porcupine-iOS (3.0.1):
+    - ios-voice-processor (~> 1.1.0)
+  - porcupine_flutter (3.0.3):
+    - Flutter
+    - Porcupine-iOS (~> 3.0.1)
   - speech_to_text (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -27,8 +36,10 @@ DEPENDENCIES:
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - Flutter (from `Flutter`)
   - flutter_tts (from `.symlinks/plugins/flutter_tts/ios`)
+  - flutter_voice_processor (from `.symlinks/plugins/flutter_voice_processor/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - porcupine_flutter (from `.symlinks/plugins/porcupine_flutter/ios`)
   - speech_to_text (from `.symlinks/plugins/speech_to_text/darwin`)
   - sqflite (from `.symlinks/plugins/sqflite/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
@@ -36,6 +47,8 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - ios-voice-processor
+    - Porcupine-iOS
     - Try
 
 EXTERNAL SOURCES:
@@ -45,10 +58,14 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_tts:
     :path: ".symlinks/plugins/flutter_tts/ios"
+  flutter_voice_processor:
+    :path: ".symlinks/plugins/flutter_voice_processor/ios"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  porcupine_flutter:
+    :path: ".symlinks/plugins/porcupine_flutter/ios"
   speech_to_text:
     :path: ".symlinks/plugins/speech_to_text/darwin"
   sqflite:
@@ -62,8 +79,12 @@ SPEC CHECKSUMS:
   camera_avfoundation: dd002b0330f4981e1bbcb46ae9b62829237459a4
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_tts: 0f492aab6accf87059b72354fcb4ba934304771d
+  flutter_voice_processor: 2b89b93d69b02227ae3fd58589ee0bcfa3ca2a82
   image_picker_ios: c560581cceedb403a6ff17f2f816d7fea1421fc1
+  ios-voice-processor: 8e32d7f980a06d392d128ef1cd19cf6ddcaca3c1
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  Porcupine-iOS: 6d69509fa587f3ac0be1adfefb48e0c6ce029fff
+  porcupine_flutter: fd639dc478ae899af107281e91c38c0c852b5dc8
   speech_to_text: 627d3fd2194770b51abb324ba45c2d39398f24a8
   sqflite: 673a0e54cc04b7d6dba8d24fb8095b31c3a99eec
   Try: 5ef669ae832617b3cee58cb2c6f99fb767a4ff96
