@@ -12,7 +12,6 @@ import 'dart:async';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
-var question = "";
 
 PorcupineManager? _porcupineManager;
 
@@ -139,10 +138,11 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _getGeminiImageResponse(image) async {
     final gemini = Gemini.instance;
+    var prompt =
+        "Pretend you are talking to a 4-8 years old child, look at the below drawing and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question ";
 
-    var result = "";
     gemini.textAndImage(
-      text: _lastWords,
+      text: prompt,
       images: [await image.readAsBytesSync()],
     ).then((value) {
 // Check if the response is not null and has output
@@ -152,29 +152,7 @@ class _CameraScreenState extends State<CameraScreen> {
         _speak(results);
       }
     });
-
-    var prompt =
-        "Pretend you are talking to a 4-8 years old child, look at the below image and answer the child what you see in the image in simple words, keep the conversation playful and engaging by asking a leading question " +
-            question;
-    // print(prompt);
-    gemini.text(prompt).then((value) {
-      String results = "Show results here...";
-      results = value!.output!;
-      _speak(results);
-    }).catchError(
-        (e) => print('<-!!!!  error in gemini query !!!!->' + e.message));
-
-    // await _saveImageToGallery(image);
   }
-
-  // Future<void> _saveImageToGallery(XFile image) async {
-  //   final directory = await getApplicationDocumentsDirectory();
-  //   final imagePath = '${directory.path}/image.jpg';
-  //   await image.saveTo(imagePath);
-
-  //   // Save the image to the camera roll
-  //   await GallerySaver.saveImage(imagePath);
-  // }
 
   Future<void> _speak(text) async {
     voices = await tts.getVoices;
@@ -193,7 +171,7 @@ class _CameraScreenState extends State<CameraScreen> {
       var lastIndex = _lastWords.lastIndexOf(wakeStart);
       if (lastIndex > 0 - 1) {
         print('<========== what do you see =======>');
-        question = _lastWords.substring(lastIndex + wakeStart.length);
+        var question = _lastWords.substring(lastIndex + wakeStart.length);
         print(question);
         _getGeminiTextResponse(question);
       }
@@ -203,9 +181,6 @@ class _CameraScreenState extends State<CameraScreen> {
       await controller.takePicture().then((value) {
         if (value != null) {
           File image = File(value.path);
-          print(value.path);
-          // InputImage inputImage = InputImage.fromFile(this.widget.image);
-          // Send the image to _getGeminiImageResponse
           _getGeminiImageResponse(image);
         }
       });
@@ -255,18 +230,18 @@ class _CameraScreenState extends State<CameraScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     color: Colors.black54,
-                    child: Text(
-                      // _lastWords.length > 60
-                      //     ? _lastWords.substring(
-                      //         _lastWords.length - 60, _lastWords.length)
-                      //     : _lastWords,
-                      _lastWords,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    // child: Text(
+                    //   // _lastWords.length > 60
+                    //   //     ? _lastWords.substring(
+                    //   //         _lastWords.length - 60, _lastWords.length)
+                    //   //     : _lastWords,
+                    //   _lastWords,
+                    //   style: const TextStyle(
+                    //     color: Colors.white,
+                    //     fontSize: 24,
+                    //   ),
+                    //   textAlign: TextAlign.center,
+                    // ),
                   ),
                 ),
               ],
