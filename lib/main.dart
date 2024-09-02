@@ -5,14 +5,13 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:porcupine_flutter/porcupine_error.dart';
-
-const String porcupineAccessKey =
-    "zN+2y2D/F1q2O6Atrv2soMYhzdZ9I4LmNK4NCS055Ko20moJ5Aj4tQ=="; // Replace with your AccessKey
-const String geminiAccessKey = "AIzaSyB9sU_QRwE8hYt1lkh6vK0xBkJ5M6Tgbx8";
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:async';
 
 const bool enableGemini = false;
-const bool enableSpeechToText = true;
-var doogleCounter = 0;
+
+var doodleCounter = 0;
+var wakeup = false;
 
 PorcupineManager? _porcupineManager;
 
@@ -26,6 +25,8 @@ Future<void> main() async {
   CameraDescription frontCamera = cameras.firstWhere(
     (camera) => camera.lensDirection == CameraLensDirection.front,
   );
+
+  await dotenv.load(fileName: ".env");
 
   runApp(CameraApp(camera: frontCamera));
 }
@@ -59,13 +60,19 @@ class _CameraScreenState extends State<CameraScreen> {
   late FlutterTts tts; // Initialize Flutter TTS
 
   bool _speechEnabled = false;
+  String _question = '';
   String _lastWords = '';
+  Timer? _silenceTimer;
+  bool wakeup = false;
 
   @override
   void initState() {
     super.initState();
+    print('print env variables');
+    print(dotenv.env.toString());
     if (enableGemini) {
-      Gemini.init(apiKey: geminiAccessKey, enableDebugging: true);
+      Gemini.init(
+          apiKey: dotenv.env['GOOGLE_API_KEY'] ?? '', enableDebugging: true);
     }
 
     controller = CameraController(
@@ -74,11 +81,9 @@ class _CameraScreenState extends State<CameraScreen> {
     );
 
     initializeControllerFuture = controller.initialize();
-    if (enableSpeechToText) {
-      _initSpeech();
-    }
-    tts = FlutterTts(); // Initialize TTS
+    _initSpeech();
     _initiPorcupine();
+    tts = FlutterTts(); // Initialize TTS
   }
 
   Future<void> _initSpeech() async {
@@ -94,30 +99,15 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
       print('enable porcupine in');
       _porcupineManager = await PorcupineManager.fromKeywordPaths(
-        porcupineAccessKey,
-        ["assets/doodle_en_ios_v3_0_0.ppn"], // Path to your .ppn file
+        dotenv.env['PORCUPIN_API_KEY'] ?? '',
+        ["assets/doodle_en_ios_v3_0_0.ppn"],
         _wakeWordCallback,
       );
-      // _porcupineManager = await PorcupineManager.fromBuiltInKeywords(
-      //     porcupineAccessKey,
-      //     [BuiltInKeyword.PICOVOICE, BuiltInKeyword.PORCUPINE],
-      //     _wakeWordCallback);
+
       await _porcupineManager?.start();
     } on PorcupineException catch (err) {
       // Handle initialization error
-      print('failed to initialize Porcupine');
       print('Failed to initialize Porcupine: ${err.message}');
-    }
-  }
-
-  void _wakeWordCallback(int keywordIndex) {
-    // print('<========== Wake word detected =======>');
-    // print(keywordIndex);
-    if (keywordIndex == 0) {
-      // Custom wake word detected
-      // Do something
-      print('<==========Inside the Wake word detected =======>');
-      print(doogleCounter++);
     }
   }
 
@@ -154,6 +144,17 @@ class _CameraScreenState extends State<CameraScreen> {
     await tts.speak(text);
   }
 
+  void _wakeWordCallback(int keywordIndex) {
+    if (keywordIndex == 0) {
+      // Custom wake word detected
+      print('<==========Inside the Wake word detected =======>');
+      print(doodleCounter++);
+      wakeup = true;
+      _startSilenceTimer();
+      _question = "";
+    }
+  }
+
   void _startListening() {
     _speechToText.listen(
       onResult: (val) {
@@ -161,57 +162,61 @@ class _CameraScreenState extends State<CameraScreen> {
           _lastWords = val.recognizedWords;
         });
 
+        // Reset the silence timer if speech is detected
+        _resetSilenceTimer();
+
         // Call _speak here to convert the recognized words to speech
         // _speak(_lastWords); // Example text
-        if (enableGemini) {
-          _getGeminiResponse(_lastWords);
-        }
       },
-      // Uncomment this if you want to restart listening when done
-      // onDone: () {
-      //   _startListening();
-      // },
     );
   }
 
-  void _handleSpeech() async {
-    if (!_speechToText.isListening) {
-      bool available = await _speechToText.initialize(
-        onStatus: (val) => print('onStatus: $val'),
-        onError: (val) => print('onError: $val'),
-      );
-      print('available: $available');
-      if (available) {
-        _speechToText.listen(
-          onResult: (val) {
-            setState(() {
-              print('set here 1');
-              _lastWords = val.recognizedWords;
-            });
-          },
-        );
+  void _startSilenceTimer() {
+    _silenceTimer?.cancel(); // Cancel any existing timer
+    _silenceTimer = Timer(Duration(microseconds: 5000), () {
+      // This block will execute after 1 second of silence
+      print(_lastWords);
+      var i = _lastWords.toLowerCase().indexOf('doodle');
+
+      if (i > 0) {
+        var ask = _lastWords.substring(i, _lastWords.length - 1);
+        print('<------ ask this ------>');
+        print(i);
+        print(ask);
       }
-    } else {
-      print('listen mode');
-      _speechToText.listen(
-        onResult: (val) {
-          setState(() {
-            print('set here 2');
-            _lastWords = val.recognizedWords;
-          });
-        },
-      );
-      _speechToText.stop();
-    }
-    setState(() {});
+    });
   }
+
+  void _resetSilenceTimer() {
+    _silenceTimer?.cancel(); // Cancel the timer if speech is detected
+  }
+  // void _handleSpeech() async {
+  //   if (!_speechToText.isListening) {
+  //     bool available = await _speechToText.initialize(
+  //       onStatus: (val) => print('onStatus: $val'),
+  //       onError: (val) => print('onError: $val'),
+  //     );
+  //     print('available: $available');
+  //     if (available) {
+  //       _speechToText.listen(
+  //         onResult: (val) {
+  //           setState(() {
+  //             print('2 <---------Inside the Wake word detected-------->');
+
+  //             _lastWords = val.recognizedWords;
+  //             print(val.recognizedWords);
+  //           });
+  //         },
+  //       );
+  //     }
+  //   }
+  //   setState(() {});
+  // }
 
   @override
   void dispose() {
     controller.dispose();
-    if (enableSpeechToText) {
-      _speechToText.stop();
-    }
+    _speechToText.stop();
     _porcupineManager?.stop();
     _porcupineManager?.delete();
     super.dispose();
@@ -226,8 +231,6 @@ class _CameraScreenState extends State<CameraScreen> {
           return Scaffold(
             body: Stack(
               children: [
-                // Camera Preview
-                // Camera Preview
                 FittedBox(
                   fit: BoxFit.cover,
                   child: SizedBox(
