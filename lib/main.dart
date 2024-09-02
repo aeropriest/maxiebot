@@ -69,7 +69,6 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
-    print('print env variables');
     print(dotenv.env.toString());
     if (enableGemini) {
       Gemini.init(
@@ -83,8 +82,22 @@ class _CameraScreenState extends State<CameraScreen> {
 
     initializeControllerFuture = controller.initialize();
     _initSpeech();
-    _initiPorcupine();
+    _initPorcupine();
+    _initTTS();
+  }
+
+  List<dynamic> voices = [];
+
+  Future<void> _initTTS() async {
     tts = FlutterTts(); // Initialize TTS
+    voices = await tts.getVoices;
+    // Filter voices if needed, e.g., only English voices
+    voices = voices.where((voice) => voice['name'].contains('en')).toList();
+    print(voices);
+    var currentVoice = voices.first; // Set default voice
+    // if( tts)
+    // await tts.setVoice(currentVoice);
+    setState(() {});
   }
 
   Future<void> _initSpeech() async {
@@ -96,9 +109,8 @@ class _CameraScreenState extends State<CameraScreen> {
     setState(() {});
   }
 
-  void _initiPorcupine() async {
+  void _initPorcupine() async {
     try {
-      print('enable porcupine in');
       _porcupineManager = await PorcupineManager.fromKeywordPaths(
         dotenv.env['PORCUPIN_API_KEY'] ?? '',
         [
@@ -134,34 +146,43 @@ class _CameraScreenState extends State<CameraScreen> {
     var prompt =
         "Pretend you are talking to a 4-8 years old child, answer the following question in simple words, keep the conversation playful and engaging by asking a leading question " +
             question;
-    print(prompt);
+    // print(prompt);
     gemini.text(prompt).then((value) {
       String results = "Show results here...";
       results = value!.output!;
       _speak(results);
-    }).catchError((e) => print(e));
+    }).catchError(
+        (e) => print('<-!!!!  error in gemini query !!!!->' + e.message));
   }
 
   Future<void> _speak(text) async {
+    voices = await tts.getVoices;
+    // Filter voices if needed, e.g., only English voices
+    // voices = voices.where((voice) => voice['name'].contains('en')).toList();
+    print('-------- voices --------------------------------');
+    for (var i = 0; i < voices.length; i++) {
+      voices[i];
+    }
+
+    print('-------- voices --------------------------------');
+
     await tts.setLanguage("en-US");
     await tts.setPitch(1.0);
     await tts.speak(text);
   }
 
   void _wakeWordCallback(int keywordIndex) {
-    print(keywordIndex);
     if (keywordIndex == 0) {
       print('<========== Hey Buddy Wake Up =======>');
     }
     if (keywordIndex == 1) {
       print('<========== Tell Me Sleep =======>');
-      print(_lastWords);
+      // print(_lastWords);
       var lastIndex = _lastWords.lastIndexOf(wakeStart);
       if (lastIndex > 0 - 1) {
         question = _lastWords.substring(lastIndex + wakeStart.length);
         print(question);
         _getGeminiResponse(question);
-        // print('Substring from the last occurrence of "${searchTerm}": "${result.trim()}"`);
       }
     }
   }
@@ -209,18 +230,18 @@ class _CameraScreenState extends State<CameraScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     color: Colors.black54,
-                    child: Text(
-                      // _lastWords.length > 60
-                      //     ? _lastWords.substring(
-                      //         _lastWords.length - 60, _lastWords.length)
-                      //     : _lastWords,
-                      _lastWords,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    // child: Text(
+                    //   // _lastWords.length > 60
+                    //   //     ? _lastWords.substring(
+                    //   //         _lastWords.length - 60, _lastWords.length)
+                    //   //     : _lastWords,
+                    //   _lastWords,
+                    //   style: const TextStyle(
+                    //     color: Colors.white,
+                    //     fontSize: 24,
+                    //   ),
+                    //   textAlign: TextAlign.center,
+                    // ),
                   ),
                 ),
               ],
