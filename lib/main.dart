@@ -12,6 +12,7 @@ import 'dart:async';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
+bool _isSpeaking = false;
 
 PorcupineManager? _porcupineManager;
 
@@ -141,6 +142,9 @@ class _CameraScreenState extends State<CameraScreen> {
     var prompt =
         "Pretend you are talking to a 4-8 years old child, look at the below drawing and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question ";
 
+    // var prompt =
+    //     "Pretend you are talking to a 4-8 years old child, read from below and tell a engaging, funny story in simple words, keep the conversation short, playful and engaging by asking a leading question ";
+
     gemini.textAndImage(
       text: prompt,
       images: [await image.readAsBytesSync()],
@@ -223,27 +227,46 @@ class _CameraScreenState extends State<CameraScreen> {
                     child: CameraPreview(controller),
                   ),
                 ),
+                // Positioned(
+                //   bottom: 0, // Adjust as needed
+                //   left: 0,
+                //   right: 0,
+                //   child: Container(
+                //     padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                //     color: Colors.black54,
+                //     child: Text(
+                //       //   // _lastWords.length > 60
+                //       //   //     ? _lastWords.substring(
+                //       //   //         _lastWords.length - 60, _lastWords.length)
+                //       //   //     : _lastWords,
+                //       _lastWords,
+                //       style: const TextStyle(
+                //         color: Colors.white,
+                //         fontSize: 24,
+                //       ),
+                //       textAlign: TextAlign.center,
+                //     ),
+                //   ),
+                // ),
                 Positioned(
-                  bottom: 0, // Adjust as needed
+                  bottom: 0,
                   left: 0,
                   right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 500),
+                    height: _isSpeaking ? 50.0 : 0.0,
                     color: Colors.black54,
-                    // child: Text(
-                    //   // _lastWords.length > 60
-                    //   //     ? _lastWords.substring(
-                    //   //         _lastWords.length - 60, _lastWords.length)
-                    //   //     : _lastWords,
-                    //   _lastWords,
-                    //   style: const TextStyle(
-                    //     color: Colors.white,
-                    //     fontSize: 24,
-                    //   ),
-                    //   textAlign: TextAlign.center,
-                    // ),
+                    child: Center(
+                      child: Text(
+                        'Speaking...',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                )
               ],
             ),
           );
