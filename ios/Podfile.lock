@@ -1,4 +1,7 @@
 PODS:
+  - arkit_plugin (0.0.1):
+    - Flutter
+    - GLTFSceneKit
   - camera_avfoundation (0.0.1):
     - Flutter
   - Flutter (1.0.0)
@@ -7,6 +10,7 @@ PODS:
   - flutter_voice_processor (1.1.1):
     - Flutter
     - ios-voice-processor (~> 1.1.0)
+  - GLTFSceneKit (0.3.0)
   - image_picker_ios (0.0.1):
     - Flutter
   - ios-voice-processor (1.1.0)
@@ -33,6 +37,7 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - arkit_plugin (from `.symlinks/plugins/arkit_plugin/ios`)
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - Flutter (from `Flutter`)
   - flutter_tts (from `.symlinks/plugins/flutter_tts/ios`)
@@ -47,11 +52,14 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - GLTFSceneKit
     - ios-voice-processor
     - Porcupine-iOS
     - Try
 
 EXTERNAL SOURCES:
+  arkit_plugin:
+    :path: ".symlinks/plugins/arkit_plugin/ios"
   camera_avfoundation:
     :path: ".symlinks/plugins/camera_avfoundation/ios"
   Flutter:
@@ -76,10 +84,12 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/video_player_avfoundation/darwin"
 
 SPEC CHECKSUMS:
+  arkit_plugin: c08c4e6f334a922154c2caf2f6fadfaefb51c181
   camera_avfoundation: dd002b0330f4981e1bbcb46ae9b62829237459a4
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_tts: 0f492aab6accf87059b72354fcb4ba934304771d
   flutter_voice_processor: 2b89b93d69b02227ae3fd58589ee0bcfa3ca2a82
+  GLTFSceneKit: d1b437c514ba2aed5555afb0fddd64e030612d57
   image_picker_ios: c560581cceedb403a6ff17f2f816d7fea1421fc1
   ios-voice-processor: 8e32d7f980a06d392d128ef1cd19cf6ddcaca3c1
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46

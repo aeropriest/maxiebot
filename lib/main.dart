@@ -8,7 +8,8 @@ import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:async';
-// import 'package:gallery_saver/gallery_saver.dart';
+import 'package:arkit_plugin/arkit_plugin.dart';
+import 'package:vector_math/vector_math_64.dart' as vector;
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -59,6 +60,7 @@ class _CameraScreenState extends State<CameraScreen> {
   late Future<void> initializeControllerFuture;
   late stt.SpeechToText _speechToText;
   late FlutterTts tts; // Initialize Flutter TTS
+  late ARKitController arkitController;
 
   bool _speechEnabled = false;
   String _lastWords = '';
@@ -203,6 +205,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
+    arkitController.dispose();
     controller.dispose();
     _speechToText.stop();
     _porcupineManager?.stop();
@@ -211,69 +214,110 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: initializeControllerFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return Scaffold(
-            body: Stack(
-              children: [
-                FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    height: MediaQuery.of(context).size.height,
-                    child: CameraPreview(controller),
-                  ),
-                ),
-                // Positioned(
-                //   bottom: 0, // Adjust as needed
-                //   left: 0,
-                //   right: 0,
-                //   child: Container(
-                //     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                //     color: Colors.black54,
-                //     child: Text(
-                //       //   // _lastWords.length > 60
-                //       //   //     ? _lastWords.substring(
-                //       //   //         _lastWords.length - 60, _lastWords.length)
-                //       //   //     : _lastWords,
-                //       _lastWords,
-                //       style: const TextStyle(
-                //         color: Colors.white,
-                //         fontSize: 24,
-                //       ),
-                //       textAlign: TextAlign.center,
-                //     ),
-                //   ),
-                // ),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 500),
-                    height: _isSpeaking ? 50.0 : 0.0,
-                    color: Colors.black54,
-                    child: Center(
-                      child: Text(
-                        'Speaking...',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              ],
-            ),
-          );
-        } else {
-          return Center(child: CircularProgressIndicator());
-        }
-      },
+  Widget build(BuildContext context) => Scaffold(
+      appBar: AppBar(
+        title: const Text('ARKit in Flutter'),
+      ),
+      body: Container(
+        child: ARKitSceneView(
+          onARKitViewCreated: onARKitViewCreated,
+        ),
+      ));
+
+  void onARKitViewCreated(ARKitController arkitController) {
+    this.arkitController = arkitController;
+
+    // this.arkitController.add(_createSphere());
+    // this.arkitController.add(_createPlane());
+    this.arkitController.add(_createText());
+    // this.arkitController.add(_createBox());
+    // this.arkitController.add(_createCylinder());
+    // this.arkitController.add(_createCone());
+    // this.arkitController.add(_createPyramid());
+    // this.arkitController.add(_createTube());
+    // this.arkitController.add(_createTorus());
+    // this.arkitController.add(_createCapsule());
+  }
+
+  ARKitNode _createText() {
+    final text = ARKitText(
+      text: 'Flutter',
+      extrusionDepth: 1,
+      materials: [
+        ARKitMaterial(
+          diffuse: ARKitMaterialProperty.color(Colors.blue),
+        )
+      ],
+    );
+    return ARKitNode(
+      geometry: text,
+      position: vector.Vector3(-0.3, 0.3, -1.4),
+      scale: vector.Vector3(0.02, 0.02, 0.02),
     );
   }
+  // Widget build(BuildContext context) {
+  //   return FutureBuilder<void>(
+  //     future: initializeControllerFuture,
+  //     builder: (context, snapshot) {
+  //       if (snapshot.connectionState == ConnectionState.done) {
+  //         return Scaffold(
+  //           body: Stack(
+  //             children: [
+  //               FittedBox(
+  //                 fit: BoxFit.cover,
+  //                 child: SizedBox(
+  //                   width: MediaQuery.of(context).size.width,
+  //                   height: MediaQuery.of(context).size.height,
+  //                   child: CameraPreview(controller),
+  //                 ),
+  //               ),
+  //               // Positioned(
+  //               //   bottom: 0, // Adjust as needed
+  //               //   left: 0,
+  //               //   right: 0,
+  //               //   child: Container(
+  //               //     padding: const EdgeInsets.symmetric(horizontal: 16.0),
+  //               //     color: Colors.black54,
+  //               //     child: Text(
+  //               //       //   // _lastWords.length > 60
+  //               //       //   //     ? _lastWords.substring(
+  //               //       //   //         _lastWords.length - 60, _lastWords.length)
+  //               //       //   //     : _lastWords,
+  //               //       _lastWords,
+  //               //       style: const TextStyle(
+  //               //         color: Colors.white,
+  //               //         fontSize: 24,
+  //               //       ),
+  //               //       textAlign: TextAlign.center,
+  //               //     ),
+  //               //   ),
+  //               // ),
+  //               Positioned(
+  //                 bottom: 0,
+  //                 left: 0,
+  //                 right: 0,
+  //                 child: AnimatedContainer(
+  //                   duration: const Duration(milliseconds: 500),
+  //                   height: _isSpeaking ? 50.0 : 0.0,
+  //                   color: Colors.black54,
+  //                   child: Center(
+  //                     child: Text(
+  //                       'Speaking...',
+  //                       style: const TextStyle(
+  //                         color: Colors.white,
+  //                         fontSize: 18,
+  //                       ),
+  //                     ),
+  //                   ),
+  //                 ),
+  //               )
+  //             ],
+  //           ),
+  //         );
+  //       } else {
+  //         return Center(child: CircularProgressIndicator());
+  //       }
+  //     },
+  //   );
+  // }
 }
