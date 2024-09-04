@@ -9,8 +9,8 @@ import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:async';
-import 'text_to_speach.dart';
 import 'package:http/http.dart' as http;
+import 'package:just_audio/just_audio.dart';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -60,7 +60,6 @@ class _CameraScreenState extends State<CameraScreen> {
   late Future<void> initializeControllerFuture;
   late stt.SpeechToText _speechToText;
   late FlutterTts tts; // Initialize Flutter TTS
-  final TextToSpeech _textToSpeech = TextToSpeech();
 
   bool _speechEnabled = false;
   String _lastWords = '';
@@ -159,14 +158,10 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _speakText(text) async {
-    print('<====== audio response in _speakText ========>');
-
     var headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     };
-    // 'https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDyD3Cl845NiAT-lohwsnN_725KC7Q9GAg'
-
     var request = http.Request(
         'POST',
         Uri.parse(
@@ -185,16 +180,22 @@ class _CameraScreenState extends State<CameraScreen> {
     http.StreamedResponse response = await request.send();
 
     if (response.statusCode == 200) {
-      print(await response.stream.bytesToString());
+      print(response);
+      // final res = await response;
+      // final bytes = await response.stream.toBytes();
+      // await _playAudio(bytes);
     } else {
       print(response.reasonPhrase);
     }
   }
 
-  void _speak_new(text) {
-    if (text.isNotEmpty) {
-      _textToSpeech.speak(text);
-    }
+  Future<void> _playAudio(List<int> audioBytes) async {
+    final player = AudioPlayer();
+    final audioSource = ProgressiveAudioSource(
+      Uri.dataFromBytes(audioBytes),
+    );
+    await player.setAudioSource(audioSource);
+    await player.play();
   }
 
   Future<void> _speak(text) async {
