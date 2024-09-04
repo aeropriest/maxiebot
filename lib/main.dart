@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -9,6 +10,7 @@ import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:async';
 // import 'package:gallery_saver/gallery_saver.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -59,6 +61,7 @@ class _CameraScreenState extends State<CameraScreen> {
   late Future<void> initializeControllerFuture;
   late stt.SpeechToText _speechToText;
   late FlutterTts tts; // Initialize Flutter TTS
+  late TextRecognizer textRecognizer;
 
   bool _speechEnabled = false;
   String _lastWords = '';
@@ -79,6 +82,8 @@ class _CameraScreenState extends State<CameraScreen> {
     _initSpeech();
     _initPorcupine();
     _initTTS();
+
+    textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   }
 
   List<dynamic> voices = [];
@@ -128,7 +133,7 @@ class _CameraScreenState extends State<CameraScreen> {
     var prompt =
         "Pretend you are talking to a 4-8 years old child, answer the following question in simple words, keep the conversation playful and engaging by asking a leading question " +
             question;
-    // print(prompt);
+    print(prompt);
     gemini.text(prompt).then((value) {
       String results = "Show results here...";
       results = value!.output!;
@@ -160,8 +165,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _speak(text) async {
     voices = await tts.getVoices;
-    // await tts.setLanguage("en-US");
-    // await tts.setPitch(1.0);
+    await tts.setLanguage("en-US");
+    await tts.setPitch(1.0);
     await tts.speak(text);
   }
 
@@ -185,6 +190,9 @@ class _CameraScreenState extends State<CameraScreen> {
       await controller.takePicture().then((value) {
         if (value != null) {
           File image = File(value.path);
+          // var imageToText = doTextRecognition(image);
+          // print('<----- text recognized ----> ');
+          // print(imageToText);
           _getGeminiImageResponse(image);
         }
       });
@@ -199,6 +207,32 @@ class _CameraScreenState extends State<CameraScreen> {
         });
       },
     );
+  }
+
+  String results = "";
+  doTextRecognition(image) async {
+    InputImage inputImage = InputImage.fromFile(image);
+    final RecognizedText recognizedText =
+        await textRecognizer.processImage(inputImage);
+
+    results = recognizedText.text;
+    print("Recognize text" + results);
+    setState(() {
+      results;
+    });
+    for (TextBlock block in recognizedText.blocks) {
+      final Rect rect = block.boundingBox;
+      final List<Point<int>> cornerPoints = block.cornerPoints;
+      final String text = block.text;
+      final List<String> languages = block.recognizedLanguages;
+
+      for (TextLine line in block.lines) {
+        // Same getters as TextBlock
+        for (TextElement element in line.elements) {
+          // Same getters as TextBlock
+        }
+      }
+    }
   }
 
   @override
