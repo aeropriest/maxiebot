@@ -46,6 +46,9 @@ dependencies:
   speech_to_text: ^7.0.0
   porcupine_flutter: ^3.0.3
   google_speech: ^4.4.0
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.0.0
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:

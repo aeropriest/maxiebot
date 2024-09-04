@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,8 @@ import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:async';
+import 'text_to_speach.dart';
+import 'package:http/http.dart' as http;
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -57,6 +60,7 @@ class _CameraScreenState extends State<CameraScreen> {
   late Future<void> initializeControllerFuture;
   late stt.SpeechToText _speechToText;
   late FlutterTts tts; // Initialize Flutter TTS
+  final TextToSpeech _textToSpeech = TextToSpeech();
 
   bool _speechEnabled = false;
   String _lastWords = '';
@@ -154,11 +158,51 @@ class _CameraScreenState extends State<CameraScreen> {
     });
   }
 
+  Future<void> _speakText(text) async {
+    print('<====== audio response in _speakText ========>');
+
+    var headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    // 'https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyDyD3Cl845NiAT-lohwsnN_725KC7Q9GAg'
+
+    var request = http.Request(
+        'POST',
+        Uri.parse(
+            'https://texttospeech.googleapis.com/v1/text:synthesize?key=${dotenv.env['GCP_API_KEY']}'));
+    request.body = json.encode({
+      "input": {"text": "Hello, this is a test."},
+      "voice": {
+        "languageCode": "en-US",
+        "name": "en-US-Wavenet-F",
+        "ssmlGender": "FEMALE"
+      },
+      "audioConfig": {"audioEncoding": "MP3"}
+    });
+    request.headers.addAll(headers);
+
+    http.StreamedResponse response = await request.send();
+
+    if (response.statusCode == 200) {
+      print(await response.stream.bytesToString());
+    } else {
+      print(response.reasonPhrase);
+    }
+  }
+
+  void _speak_new(text) {
+    if (text.isNotEmpty) {
+      _textToSpeech.speak(text);
+    }
+  }
+
   Future<void> _speak(text) async {
     voices = await tts.getVoices;
     // await tts.setLanguage("en-US");
     // await tts.setPitch(1.0);
-    await tts.speak(text);
+    // await tts.speak(text);
+    await _speakText(text);
   }
 
   void _wakeWordCallback(int keywordIndex) async {
