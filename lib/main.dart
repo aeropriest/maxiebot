@@ -11,9 +11,6 @@ import 'dart:async';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
-bool _isSpeaking = false;
-
-PorcupineManager? _porcupineManager;
 
 late List<CameraDescription> cameras;
 
@@ -47,17 +44,18 @@ class CameraApp extends StatelessWidget {
 class CameraScreen extends StatefulWidget {
   final CameraDescription camera;
 
-  const CameraScreen({Key? key, required this.camera}) : super(key: key);
+  const CameraScreen({super.key, required this.camera});
 
   @override
-  _CameraScreenState createState() => _CameraScreenState();
+  CameraScreenState createState() => CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> {
-  late CameraController controller;
+class CameraScreenState extends State<CameraScreen> {
+  late CameraController _controller;
   late Future<void> initializeControllerFuture;
   late stt.SpeechToText _speechToText;
-  late FlutterTts tts; // Initialize Flutter TTS
+  late FlutterTts _textToSpeech; // Initialize Flutter TTS
+  late PorcupineManager? _porcupineManager;
 
   bool _speechEnabled = false;
   String _lastWords = '';
@@ -68,28 +66,27 @@ class _CameraScreenState extends State<CameraScreen> {
     Gemini.init(
         apiKey: dotenv.env['GOOGLE_API_KEY'] ?? '', enableDebugging: true);
 
-    controller = CameraController(
+    _controller = CameraController(
       widget.camera,
       ResolutionPreset.max,
     );
 
-    initializeControllerFuture = controller.initialize();
-    _initSpeech();
+    initializeControllerFuture = _controller.initialize();
+    _initSpeechToText();
     _initPorcupine();
-    _initTTS();
+    _initTextToSpeech();
   }
 
   List<dynamic> voices = [];
 
-  Future<void> _initTTS() async {
-    tts = FlutterTts(); // Initialize TTS
-    voices = await tts.getVoices;
+  Future<void> _initTextToSpeech() async {
+    _textToSpeech = FlutterTts(); // Initialize TTS
+    voices = await _textToSpeech.getVoices;
     voices = voices.where((voice) => voice['name'].contains('en')).toList();
-    print(voices);
     setState(() {});
   }
 
-  Future<void> _initSpeech() async {
+  Future<void> _initSpeechToText() async {
     _speechToText = stt.SpeechToText();
     _speechEnabled = await _speechToText.initialize();
     if (_speechEnabled) {
@@ -149,10 +146,10 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _speak(text) async {
-    voices = await tts.getVoices;
-    // await tts.setLanguage("en-US");
-    // await tts.setPitch(1.0);
-    await tts.speak(text);
+    voices = await _textToSpeech.getVoices;
+    // await _textToSpeech.setLanguage("en-US");
+    // await _textToSpeech.setPitch(1.0);
+    await _textToSpeech.speak(text);
   }
 
   void _wakeWordCallback(int keywordIndex) async {
@@ -172,7 +169,7 @@ class _CameraScreenState extends State<CameraScreen> {
         }
         break;
       case 2:
-        await controller.takePicture().then((value) {
+        await _controller.takePicture().then((value) {
           if (value != null) {
             File image = File(value.path);
             _getGeminiImageResponse(image);
@@ -195,7 +192,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
-    controller.dispose();
+    _controller.dispose();
     _speechToText.stop();
     _porcupineManager?.stop();
     _porcupineManager?.delete();
@@ -216,7 +213,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   child: SizedBox(
                     width: MediaQuery.of(context).size.width,
                     height: MediaQuery.of(context).size.height,
-                    child: CameraPreview(controller),
+                    child: CameraPreview(_controller),
                   ),
                 ),
               ],
