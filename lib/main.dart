@@ -8,7 +8,6 @@ import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:async';
-// import 'package:gallery_saver/gallery_saver.dart';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -66,7 +65,6 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
-    print(dotenv.env.toString());
     Gemini.init(
         apiKey: dotenv.env['GOOGLE_API_KEY'] ?? '', enableDebugging: true);
 
@@ -86,12 +84,8 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> _initTTS() async {
     tts = FlutterTts(); // Initialize TTS
     voices = await tts.getVoices;
-    // Filter voices if needed, e.g., only English voices
     voices = voices.where((voice) => voice['name'].contains('en')).toList();
     print(voices);
-    var currentVoice = voices.first; // Set default voice
-    // if( tts)
-    // await tts.setVoice(currentVoice);
     setState(() {});
   }
 
@@ -142,14 +136,10 @@ class _CameraScreenState extends State<CameraScreen> {
     var prompt =
         "Pretend you are talking to a 4-8 years old child, look at the below drawing and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question ";
 
-    // var prompt =
-    //     "Pretend you are talking to a 4-8 years old child, read from below and tell a engaging, funny story in simple words, keep the conversation short, playful and engaging by asking a leading question ";
-
     gemini.textAndImage(
       text: prompt,
       images: [await image.readAsBytesSync()],
     ).then((value) {
-// Check if the response is not null and has output
       if (value != null && value.output != null) {
         String results = value.output!;
         print('Image description: ' + results);
@@ -166,28 +156,30 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _wakeWordCallback(int keywordIndex) async {
-    if (keywordIndex == 0) {
-      print('<========== Hey Buddy Wake Up =======>');
-    }
-    if (keywordIndex == 1) {
-      print('<========== Tell Me =======>');
-      // print(_lastWords);
-      var lastIndex = _lastWords.lastIndexOf(wakeStart);
-      if (lastIndex > 0 - 1) {
-        print('<========== what do you see =======>');
-        var question = _lastWords.substring(lastIndex + wakeStart.length);
-        print(question);
-        _getGeminiTextResponse(question);
-      }
-    }
-    // tell the user what you see in the image
-    if (keywordIndex == 2) {
-      await controller.takePicture().then((value) {
-        if (value != null) {
-          File image = File(value.path);
-          _getGeminiImageResponse(image);
+    switch (keywordIndex) {
+      case 0:
+        print('<========== Hey Buddy Wake Up =======>');
+        break;
+      case 1:
+        print('<========== Tell Me =======>');
+        // print(_lastWords);
+        var lastIndex = _lastWords.lastIndexOf(wakeStart);
+        if (lastIndex > 0 - 1) {
+          print('<========== what do you see =======>');
+          var question = _lastWords.substring(lastIndex + wakeStart.length);
+          print(question);
+          _getGeminiTextResponse(question);
         }
-      });
+        break;
+      case 2:
+        await controller.takePicture().then((value) {
+          if (value != null) {
+            File image = File(value.path);
+            _getGeminiImageResponse(image);
+          }
+        });
+
+        break;
     }
   }
 
@@ -227,46 +219,6 @@ class _CameraScreenState extends State<CameraScreen> {
                     child: CameraPreview(controller),
                   ),
                 ),
-                // Positioned(
-                //   bottom: 0, // Adjust as needed
-                //   left: 0,
-                //   right: 0,
-                //   child: Container(
-                //     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                //     color: Colors.black54,
-                //     child: Text(
-                //       //   // _lastWords.length > 60
-                //       //   //     ? _lastWords.substring(
-                //       //   //         _lastWords.length - 60, _lastWords.length)
-                //       //   //     : _lastWords,
-                //       _lastWords,
-                //       style: const TextStyle(
-                //         color: Colors.white,
-                //         fontSize: 24,
-                //       ),
-                //       textAlign: TextAlign.center,
-                //     ),
-                //   ),
-                // ),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 500),
-                    height: _isSpeaking ? 50.0 : 0.0,
-                    color: Colors.black54,
-                    child: Center(
-                      child: Text(
-                        'Speaking...',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
               ],
             ),
           );
