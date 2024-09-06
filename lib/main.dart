@@ -31,7 +31,7 @@ Future<void> main() async {
 class CameraApp extends StatelessWidget {
   final CameraDescription camera;
 
-  const CameraApp({Key? key, required this.camera}) : super(key: key);
+  const CameraApp({super.key, required this.camera});
 
   @override
   Widget build(BuildContext context) {
@@ -119,7 +119,7 @@ class CameraScreenState extends State<CameraScreen> {
     var prompt =
         "Pretend you are talking to a 4-8 years old child, answer the following question in simple words, keep the conversation playful and engaging by asking a leading question " +
             question;
-    // print(prompt);
+    print(prompt);
     gemini.text(prompt).then((value) {
       String results = "Show results here...";
       results = value!.output!;
@@ -139,7 +139,7 @@ class CameraScreenState extends State<CameraScreen> {
     ).then((value) {
       if (value != null && value.output != null) {
         String results = value.output!;
-        print('Image description: ' + results);
+        print('Image description: $results');
         _speak(results);
       }
     });
@@ -170,10 +170,10 @@ class CameraScreenState extends State<CameraScreen> {
         break;
       case 2:
         await _controller.takePicture().then((value) {
-          if (value != null) {
-            File image = File(value.path);
-            _getGeminiImageResponse(image);
-          }
+          File image = File(value.path);
+          print('--------------------------------');
+          print(value.path);
+          _getGeminiImageResponse(image);
         });
 
         break;
@@ -220,7 +220,7 @@ class CameraScreenState extends State<CameraScreen> {
             ),
           );
         } else {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
       },
     );
