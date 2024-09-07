@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -7,7 +8,12 @@ import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:image/image.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'dart:math';
 import 'dart:async';
+import 'package:path_provider/path_provider.dart';
+import 'package:image/image.dart' as dartImage;
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -56,6 +62,7 @@ class CameraScreenState extends State<CameraScreen> {
   late stt.SpeechToText _speechToText;
   late FlutterTts _textToSpeech; // Initialize Flutter TTS
   late PorcupineManager? _porcupineManager;
+  late TextRecognizer textRecognizer;
 
   bool _speechEnabled = false;
   String _lastWords = '';
@@ -72,6 +79,7 @@ class CameraScreenState extends State<CameraScreen> {
     );
 
     initializeControllerFuture = _controller.initialize();
+    textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
     _initSpeechToText();
     _initPorcupine();
     _initTextToSpeech();
@@ -128,21 +136,25 @@ class CameraScreenState extends State<CameraScreen> {
         (e) => print('<-!!!!  error in gemini query !!!!->' + e.message));
   }
 
-  Future<void> _getGeminiImageResponse(image) async {
+  Future<void> _getGeminiImageResponse(image, text) async {
     final gemini = Gemini.instance;
     var prompt =
-        "Pretend you are talking to a 4-8 years old child, look at the below drawing and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question ";
+        'Pretend you are talking to a 4-8 years old child, look at the below drawing as well as text and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question \n\n ${text}';
+    // var prompt =
+    //     "Pretend you are talking to a 4-8 years old child, look at the below drawing as well as text and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question \n\n" +
+    //         text;
 
-    gemini.textAndImage(
-      text: prompt,
-      images: [await image.readAsBytesSync()],
-    ).then((value) {
-      if (value != null && value.output != null) {
-        String results = value.output!;
-        print('Image description: $results');
-        _speak(results);
-      }
-    });
+    print(prompt);
+    // gemini.textAndImage(
+    //   text: prompt,
+    //   images: [await image.readAsBytesSync()],
+    // ).then((value) {
+    //   if (value != null && value.output != null) {
+    //     String results = value.output!;
+    //     print('Image description: $results');
+    //     _speak(results);
+    //   }
+    // });
   }
 
   Future<void> _speak(text) async {
@@ -159,23 +171,43 @@ class CameraScreenState extends State<CameraScreen> {
         break;
       case 1:
         print('<========== Tell Me =======>');
-        // print(_lastWords);
         var lastIndex = _lastWords.lastIndexOf(wakeStart);
-        if (lastIndex > 0 - 1) {
-          print('<========== what do you see =======>');
+        if (lastIndex > -1) {
           var question = _lastWords.substring(lastIndex + wakeStart.length);
           print(question);
-          _getGeminiTextResponse(question);
+          await _getGeminiTextResponse(
+              question); // Added await for async function
         }
         break;
       case 2:
-        await _controller.takePicture().then((value) {
+        // Simplified condition
+        print('<========== what do you see =======>');
+        try {
+          final value =
+              await _controller.takePicture(); // Use await instead of then
           File image = File(value.path);
-          print('--------------------------------');
-          print(value.path);
-          _getGeminiImageResponse(image);
-        });
 
+          // Read image bytes asynchronously
+          final imageDataBytes = await image.readAsBytes();
+          dartImage.Image imageData =
+              dartImage.decodeImage(imageDataBytes) as dartImage.Image;
+
+          dartImage.Image mirrorImage = dartImage.flipHorizontal(imageData);
+
+          // Write the mirror image bytes to the file
+          await image.writeAsBytes(dartImage.encodeJpg(mirrorImage));
+
+          InputImage inputImage = InputImage.fromFile(image);
+          final result = await textRecognizer
+              .processImage(inputImage); // Use await for processImage
+          print('Text found is: ${result.text}');
+        } catch (e) {
+          print('Error processing image: $e'); // Handle errors
+        }
+        break;
+      default:
+        print(
+            'Unknown keyword index: $keywordIndex'); // Handle unexpected cases
         break;
     }
   }

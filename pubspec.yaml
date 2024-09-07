@@ -45,6 +45,10 @@ dependencies:
   camera: ^0.11.0+2
   speech_to_text: ^7.0.0
   porcupine_flutter: ^3.0.3
+  google_mlkit_entity_extraction: ^0.11.0
+  google_mlkit_text_recognition: ^0.11.0
+  image: ^4.2.0
+  path_provider: ^2.0.11  # Add this line
 
 dev_dependencies:
   flutter_test:
