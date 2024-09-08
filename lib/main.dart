@@ -136,25 +136,26 @@ class CameraScreenState extends State<CameraScreen> {
         (e) => print('<-!!!!  error in gemini query !!!!->' + e.message));
   }
 
-  Future<void> _getGeminiImageResponse(image, text) async {
+  Future<void> _getGeminiImageResponse(image, text, question) async {
     final gemini = Gemini.instance;
     var prompt =
-        'Pretend you are talking to a 4-8 years old child, look at the below drawing as well as text and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question \n\n ${text}';
+        'Pretend you are talking to a 4-8 years old child, look at the below drawing as well as text and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question \n\n $question \n\n\n $text';
     // var prompt =
     //     "Pretend you are talking to a 4-8 years old child, look at the below drawing as well as text and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question \n\n" +
     //         text;
 
+    print('<===== prompt is =====>');
     print(prompt);
-    // gemini.textAndImage(
-    //   text: prompt,
-    //   images: [await image.readAsBytesSync()],
-    // ).then((value) {
-    //   if (value != null && value.output != null) {
-    //     String results = value.output!;
-    //     print('Image description: $results');
-    //     _speak(results);
-    //   }
-    // });
+    gemini.textAndImage(
+      text: prompt,
+      images: [await image.readAsBytesSync()],
+    ).then((value) {
+      if (value != null && value.output != null) {
+        String results = value.output!;
+        print('Image description: $results');
+        _speak(results);
+      }
+    });
   }
 
   Future<void> _speak(text) async {
@@ -201,6 +202,8 @@ class CameraScreenState extends State<CameraScreen> {
           final result = await textRecognizer
               .processImage(inputImage); // Use await for processImage
           print('Text found is: ${result.text}');
+          var question = "explain this to me";
+          await _getGeminiImageResponse(image, result.text, question);
         } catch (e) {
           print('Error processing image: $e'); // Handle errors
         }
