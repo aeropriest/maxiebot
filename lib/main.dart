@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -8,12 +7,10 @@ import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:image/image.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'dart:math';
 import 'dart:async';
-import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as dartImage;
+import 'package:tflite/tflite.dart';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -63,6 +60,7 @@ class CameraScreenState extends State<CameraScreen> {
   late FlutterTts _textToSpeech; // Initialize Flutter TTS
   late PorcupineManager? _porcupineManager;
   late TextRecognizer textRecognizer;
+  late List<dynamic> _recognitions = []; // Store recognitions
 
   bool _speechEnabled = false;
   String _lastWords = '';
@@ -83,6 +81,32 @@ class CameraScreenState extends State<CameraScreen> {
     _initSpeechToText();
     _initPorcupine();
     _initTextToSpeech();
+    loadCoinDetectionModel();
+  }
+
+  loadCoinDetectionModel() async {
+    String? res = await Tflite.loadModel(
+      model: "assets/coin_detection_model.tflite",
+    );
+    print(res);
+  }
+
+  Future<void> _detectCoins(CameraImage image) async {
+    // Convert CameraImage to the format required by TFLite
+    // You may need to implement this conversion based on your model requirements
+
+    // Run the model on the image
+    var recognitions = await Tflite.runModelOnFrame(
+      bytesList: image.planes.map((plane) => plane.bytes).toList(),
+      imageHeight: image.height,
+      imageWidth: image.width,
+      numResults: 3,
+      threshold: 0.5,
+    );
+
+    setState(() {
+      _recognitions = recognitions!; // Update recognitions
+    });
   }
 
   List<dynamic> voices = [];
@@ -140,9 +164,6 @@ class CameraScreenState extends State<CameraScreen> {
     final gemini = Gemini.instance;
     var prompt =
         'Pretend you are talking to a 4-8 years old child, look at the below drawing as well as text and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question \n\n $question \n\n\n $text';
-    // var prompt =
-    //     "Pretend you are talking to a 4-8 years old child, look at the below drawing as well as text and tell a engaging, funny story of what you see in simple words, keep the conversation short, playful and engaging by asking a leading question \n\n" +
-    //         text;
 
     print('<===== prompt is =====>');
     print(prompt);
@@ -251,6 +272,36 @@ class CameraScreenState extends State<CameraScreen> {
                     child: CameraPreview(_controller),
                   ),
                 ),
+                // Overlay for detected coins
+                ..._recognitions.map((recognition) {
+                  final rect = recognition[
+                      'rect']; // Assuming your model returns a 'rect' field
+                  return Positioned(
+                    left: rect['x'] * MediaQuery.of(context).size.width,
+                    top: rect['y'] * MediaQuery.of(context).size.height,
+                    child: Container(
+                      width: rect['w'] * MediaQuery.of(context).size.width,
+                      height: rect['h'] * MediaQuery.of(context).size.height,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.green, width: 2),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          // Use different icons based on the recognized coin
+                          recognition['label'] == '1 dollar'
+                              ? Icons.attach_money
+                              : recognition['label'] == '2 dollar'
+                                  ? Icons.money_off
+                                  : recognition['label'] == '5 dollar'
+                                      ? Icons.monetization_on
+                                      : null,
+                          size: 30,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ],
             ),
           );
