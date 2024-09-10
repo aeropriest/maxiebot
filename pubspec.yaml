@@ -49,6 +49,8 @@ dependencies:
   google_mlkit_text_recognition: ^0.11.0
   image: ^4.2.0
   path_provider: ^2.0.11  # Add this line
+  tflite_flutter: ^0.11.0
+
 
 dev_dependencies:
   flutter_test:
@@ -78,6 +80,7 @@ flutter:
       - assets/hey-buddy_en_ios_v3_0_0.ppn
       - assets/tell-me_en_ios_v3_0_0.ppn
       - assets/what-do-you-see_en_ios_v3_0_0.ppn
+      - assets/fruits_model.tflite
       - .env
 
   #   - images/a_dot_burr.jpeg

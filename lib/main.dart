@@ -10,6 +10,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'dart:async';
 import 'package:image/image.dart' as dartImage;
+import 'package:tflite_flutter/tflite_flutter.dart';
+import 'dart:math';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -27,13 +29,13 @@ Future<void> main() async {
 
   await dotenv.load(fileName: ".env");
 
-  runApp(CameraApp(camera: frontCamera));
+  runApp(MyApp(camera: frontCamera));
 }
 
-class CameraApp extends StatelessWidget {
+class MyApp extends StatelessWidget {
   final CameraDescription camera;
 
-  const CameraApp({super.key, required this.camera});
+  const MyApp({super.key, required this.camera});
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +61,18 @@ class CameraScreenState extends State<CameraScreen> {
   late FlutterTts _textToSpeech; // Initialize Flutter TTS
   late PorcupineManager? _porcupineManager;
   late TextRecognizer textRecognizer;
+  late Interpreter _interpreter;
 
+  final int numClasses =
+      5; // Change this to the number of fruit classes your model can detect
+  final List<String> classNames = [
+    'Apple',
+    'Banana',
+    'Orange',
+    'Mango',
+    'Lemon',
+    // Add more fruit names as per your model's output
+  ];
   bool _speechEnabled = false;
   String _lastWords = '';
 
@@ -79,11 +92,41 @@ class CameraScreenState extends State<CameraScreen> {
     _initSpeechToText();
     _initPorcupine();
     _initTextToSpeech();
+    _initImageDetection();
+
+    initializeControllerFuture.then((_) {
+      if (_controller.value.isInitialized) {
+        _controller.startImageStream((CameraImage image) {
+          _processCameraImage(image);
+        });
+      }
+    }).catchError((error) {
+      print('Error initializing camera: $error');
+    });
+  }
+
+  void _processCameraImage(CameraImage image) async {
+    // Convert and preprocess the image as needed
+
+    // Run inference
+    var output = List.filled(1 * numClasses, 0).reshape([1, numClasses]);
+    // _interpreter.run(image, output);
+
+    // // Example: Get the detected fruit class
+    // int detectedClass = output[0].indexOf(output[0].reduce(max));
+    // String fruitName = classNames[detectedClass]; // Map index to class name
+    // print('Detected fruit: $fruitName');
   }
 
   List<dynamic> voices = [];
 
+  Future<void> _initImageDetection() async {
+    print('Initializing image detection model from tensorflow lite');
+    _interpreter = await Interpreter.fromAsset('assets/fruits_model.tflite');
+  }
+
   Future<void> _initTextToSpeech() async {
+    print('Initializing text to speech');
     _textToSpeech = FlutterTts(); // Initialize TTS
     voices = await _textToSpeech.getVoices;
     voices = voices.where((voice) => voice['name'].contains('en')).toList();
@@ -91,6 +134,7 @@ class CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _initSpeechToText() async {
+    print('Initializing speech to text');
     _speechToText = stt.SpeechToText();
     _speechEnabled = await _speechToText.initialize();
     if (_speechEnabled) {
@@ -100,6 +144,7 @@ class CameraScreenState extends State<CameraScreen> {
   }
 
   void _initPorcupine() async {
+    print('Initializing _initPorcupine');
     try {
       _porcupineManager = await PorcupineManager.fromKeywordPaths(
         dotenv.env['PORCUPIN_API_KEY'] ?? '',
@@ -227,6 +272,7 @@ class CameraScreenState extends State<CameraScreen> {
     _speechToText.stop();
     _porcupineManager?.stop();
     _porcupineManager?.delete();
+    _interpreter.close();
     super.dispose();
   }
 
