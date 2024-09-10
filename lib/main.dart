@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -8,11 +7,8 @@ import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:porcupine_flutter/porcupine_manager.dart';
 import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:image/image.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'dart:math';
 import 'dart:async';
-import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as dartImage;
 
 const wakeStart = "hey buddy";
