@@ -1,5 +1,5 @@
+import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -14,6 +14,7 @@ import 'dart:math';
 import 'dart:async';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as dartImage;
+import 'package:tflite/tflite.dart';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -26,18 +27,18 @@ Future<void> main() async {
 
   // Get the front camera
   CameraDescription frontCamera = cameras.firstWhere(
-    (camera) => camera.lensDirection == CameraLensDirection.front,
+    (camera) => camera.lensDirection == CameraLensDirection.back,
   );
 
   await dotenv.load(fileName: ".env");
 
-  runApp(CameraApp(camera: frontCamera));
+  runApp(MyApp(camera: frontCamera));
 }
 
-class CameraApp extends StatelessWidget {
+class MyApp extends StatelessWidget {
   final CameraDescription camera;
 
-  const CameraApp({super.key, required this.camera});
+  const MyApp({super.key, required this.camera});
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +64,9 @@ class CameraScreenState extends State<CameraScreen> {
   late FlutterTts _textToSpeech; // Initialize Flutter TTS
   late PorcupineManager? _porcupineManager;
   late TextRecognizer textRecognizer;
+  List? _recognitions;
+  final String _model = "assets/coins-model.tflite";
+  final String _labels = "assets/coins-label.txt";
 
   bool _speechEnabled = false;
   String _lastWords = '';
@@ -79,13 +83,45 @@ class CameraScreenState extends State<CameraScreen> {
     );
 
     initializeControllerFuture = _controller.initialize();
+    _controller.startImageStream((CameraImage image) {
+      _runModelOnFrame(image);
+    });
     textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    _initializeTFLite();
     _initSpeechToText();
     _initPorcupine();
     _initTextToSpeech();
   }
 
   List<dynamic> voices = [];
+
+  Future<void> _initializeTFLite() async {
+    await Tflite.loadModel(
+      model: _model,
+      labels: _labels,
+    );
+  }
+
+  Future<void> _runModelOnFrame(CameraImage image) async {
+    // Convert CameraImage to a format suitable for TFLite
+    // This may require resizing and preprocessing the image
+
+    // Run inference
+    var recognitions = await Tflite.detectObjectOnFrame(
+      bytesList: image.planes.map((plane) {
+        return plane.bytes;
+      }).toList(),
+      model: "SSDMobileNet",
+      imageHeight: image.height,
+      imageWidth: image.width,
+      numResultsPerClass: 1,
+      threshold: 0.5,
+    );
+
+    setState(() {
+      _recognitions = recognitions;
+    });
+  }
 
   Future<void> _initTextToSpeech() async {
     _textToSpeech = FlutterTts(); // Initialize TTS
@@ -251,6 +287,9 @@ class CameraScreenState extends State<CameraScreen> {
                     child: CameraPreview(_controller),
                   ),
                 ),
+                // CustomPaint(
+                //   painter: CoinPainter(_recognitions),
+                // ),
               ],
             ),
           );
@@ -261,3 +300,56 @@ class CameraScreenState extends State<CameraScreen> {
     );
   }
 }
+
+// class CoinPainter extends CustomPainter {
+//   final List? recognitions;
+
+//   CoinPainter(this.recognitions);
+
+//   @override
+//   void paint(Canvas canvas, Size size) {
+//     if (recognitions != null) {
+//       for (var recognition in recognitions!) {
+//         final rect = recognition['rect'];
+//         final label = recognition['detectedClass'];
+//         final confidence = recognition['confidenceInClass'];
+
+//         // Draw rectangle
+//         final paint = Paint()
+//           ..color = Colors.red
+//           ..style = PaintingStyle.stroke
+//           ..strokeWidth = 2.0;
+
+//         canvas.drawRect(
+//           Rect.fromLTRB(
+//             rect['x'] * size.width,
+//             rect['y'] * size.height,
+//             rect['w'] * size.width + rect['x'] * size.width,
+//             rect['h'] * size.height + rect['y'] * size.height,
+//           ),
+//           paint,
+//         );
+
+//         // Draw label
+//         // final textPainter = TextPainter(
+//         //   text: TextSpan(
+//         //     text: '$label: ${confidence.toStringAsFixed(2)}',
+//         //     style: const TextStyle(color: Colors.white, fontSize: 16),
+//         //   ),
+//         //   textDirection: TextDirection.ltr,
+//         // );
+
+//         // textPainter.layout();
+//         // textPainter.paint(
+//         //   canvas,
+//         //   Offset(rect['x'] * size.width, rect['y'] * size.height - 20),
+//         // );
+//       }
+//     }
+//   }
+
+//   @override
+//   bool shouldRepaint(CoinPainter oldDelegate) {
+//     return true;
+//   }
+// }
