@@ -50,6 +50,7 @@ dependencies:
   image: ^4.2.0
   path_provider: ^2.0.11  # Add this line
   tflite_flutter: ^0.11.0
+  tflite_v2: ^1.0.0
 
 
 dev_dependencies:

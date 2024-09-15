@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:image/image.dart' as dartImage;
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'dart:math';
+import 'dart:typed_data';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -106,16 +107,84 @@ class CameraScreenState extends State<CameraScreen> {
   }
 
   void _processCameraImage(CameraImage image) async {
+    print('processing image...');
     // Convert and preprocess the image as needed
+    var inputImage = _preprocessImage(image);
 
     // Run inference
     var output = List.filled(1 * numClasses, 0).reshape([1, numClasses]);
-    // _interpreter.run(image, output);
+
+    // print(output.join());
+    _interpreter.run(image, output);
 
     // // Example: Get the detected fruit class
-    // int detectedClass = output[0].indexOf(output[0].reduce(max));
-    // String fruitName = classNames[detectedClass]; // Map index to class name
-    // print('Detected fruit: $fruitName');
+    int detectedClass = output[0].indexOf(output[0].reduce(max));
+    String fruitName = classNames[detectedClass]; // Map index to class name
+    print('Detected fruit: $fruitName');
+  }
+
+  Uint8List _preprocessImage(CameraImage image) {
+    // Get the image dimensions
+    int width = image.width;
+    int height = image.height;
+
+    // Convert the CameraImage to a format compatible with your model
+    // Assuming the model expects a 300x300 RGB image
+    int targetWidth = 300;
+    int targetHeight = 300;
+
+    // Convert YUV420 to RGB
+    // The CameraImage format is typically YUV420
+    // Create an image buffer
+    dartImage.Image convertedImage =
+        dartImage.Image(width: targetWidth, height: targetHeight);
+
+    // Convert YUV420 to RGB
+    // YUV420 format: Y plane followed by U and V planes
+    // We will use the Y plane to get the brightness and then average U and V for color
+    // Convert YUV420 to RGB
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        // Get the Y value
+        int yIndex = y * width + x;
+        int yValue = image.planes[0].bytes[yIndex];
+
+        // Get the U and V values
+        int uIndex = (y ~/ 2) * (width ~/ 2) + (x ~/ 2);
+        int vIndex = (y ~/ 2) * (width ~/ 2) + (x ~/ 2);
+
+        int uValue = image.planes[1].bytes[uIndex] - 128;
+        int vValue = image.planes[2].bytes[vIndex] - 128;
+
+        // Convert YUV to RGB
+        int r = (yValue + 1.402 * vValue).clamp(0, 255).toInt();
+        int g = (yValue - 0.344136 * uValue - 0.714136 * vValue)
+            .clamp(0, 255)
+            .toInt();
+        int b = (yValue + 1.772 * uValue).clamp(0, 255).toInt();
+
+        // Set the pixel in the converted image
+        // convertedImage.setPixel(x, y, dartImage.getColor(r, g, b));
+      }
+    }
+
+    // Resize the image to the target size
+    dartImage.Image resizedImage = dartImage.copyResize(convertedImage,
+        width: targetWidth, height: targetHeight);
+
+    // Convert the resized image to a Uint8List
+    Uint8List imageBytes =
+        Uint8List.fromList(dartImage.encodeJpg(resizedImage));
+
+    // Normalize the pixel values to [0, 1] range if required by your model
+    // This step depends on your model's expected input
+    // Here we assume the model expects float32 input
+    Float32List normalizedBytes = Float32List(targetWidth * targetHeight * 3);
+    for (int i = 0; i < imageBytes.length; i++) {
+      normalizedBytes[i] = imageBytes[i] / 255.0; // Normalize to [0, 1]
+    }
+
+    return normalizedBytes.buffer.asUint8List();
   }
 
   List<dynamic> voices = [];
@@ -123,6 +192,8 @@ class CameraScreenState extends State<CameraScreen> {
   Future<void> _initImageDetection() async {
     print('Initializing image detection model from tensorflow lite');
     _interpreter = await Interpreter.fromAsset('assets/fruits_model.tflite');
+    final isolateInterpreter =
+        await IsolateInterpreter.create(address: _interpreter.address);
   }
 
   Future<void> _initTextToSpeech() async {
