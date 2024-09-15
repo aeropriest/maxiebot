@@ -14,6 +14,7 @@ import 'dart:math';
 import 'dart:async';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as dartImage;
+import 'package:o3d/o3d.dart';
 
 const wakeStart = "hey buddy";
 const wakeEnd = "tell me";
@@ -63,6 +64,7 @@ class CameraScreenState extends State<CameraScreen> {
   late FlutterTts _textToSpeech; // Initialize Flutter TTS
   late PorcupineManager? _porcupineManager;
   late TextRecognizer textRecognizer;
+  final O3DController o3dController = O3DController();
 
   bool _speechEnabled = false;
   String _lastWords = '';
@@ -249,6 +251,26 @@ class CameraScreenState extends State<CameraScreen> {
                     width: MediaQuery.of(context).size.width,
                     height: MediaQuery.of(context).size.height,
                     child: CameraPreview(_controller),
+                  ),
+                ),
+                Positioned(
+                  top: (MediaQuery.of(context).size.height / 2) -
+                      100, // Adjust the position as needed
+                  left: (MediaQuery.of(context).size.width / 2) -
+                      100, // Adjust the position as needed
+                  child: SizedBox(
+                    width: 400, // Set the width of the model viewer
+                    height: 400, // Set the height of the model viewer
+                    child: O3D.asset(
+                      src: 'assets/disney_style_character.glb',
+                      controller: o3dController,
+                      ar: false,
+                      autoPlay: true,
+                      autoRotate: false,
+                      cameraControls: false,
+                      cameraTarget: CameraTarget(-.25, 1.5, 1.5),
+                      cameraOrbit: CameraOrbit(0, 90, 1),
+                    ),
                   ),
                 ),
               ],
