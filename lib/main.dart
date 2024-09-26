@@ -1,23 +1,12 @@
-import 'dart:developer';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
-import 'package:porcupine_flutter/porcupine_manager.dart';
-import 'package:porcupine_flutter/porcupine_error.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'dart:async';
-import 'package:image/image.dart' as dartImage;
-import 'dart:typed_data';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'rectangle_painter.dart'; // Adjust the path if necessary
-
-const wakeStart = "hey buddy";
-const wakeEnd = "tell me";
 
 late List<CameraDescription> cameras;
 
@@ -61,7 +50,6 @@ class CameraScreenState extends State<CameraScreen> {
   late CameraController _controller;
   late Future<void> initializeControllerFuture;
   late Interpreter _interpreter;
-  String _currentTime = ''; // Variable to hold current time
 
   final int numClasses =
       5; // Change this to the number of fruit classes your model can detect
@@ -88,22 +76,52 @@ class CameraScreenState extends State<CameraScreen> {
 
     initializeControllerFuture = _controller.initialize();
     _initFruitsModel();
-
-    initializeControllerFuture.then((_) {
-      if (_controller.value.isInitialized) {
-        _controller.startImageStream((CameraImage image) {
-          // _processCameraImage(image);
-        });
-      }
-    }).catchError((error) {
-      print('Error initializing camera: $error');
-    });
   }
 
   List<dynamic> voices = [];
 
   Future<void> _initFruitsModel() async {
     _interpreter = await Interpreter.fromAsset('assets/fruits_model.tflite');
+  }
+
+  Future<void> _takeSnapshotAndDetectObjects() async {
+    print('Look for fruits model');
+    try {
+      // Take a picture
+      final value = await _controller.takePicture();
+      File image = File(value.path);
+
+      print('Picture taken: ${value.path}');
+      final imageDataBytes = await image.readAsBytes();
+      img.Image? imageData = img.decodeImage(imageDataBytes);
+
+      if (imageData == null) {
+        print('Failed to decode image data');
+        return;
+      }
+
+      // Log image properties
+      print('Image Width: ${imageData.width}');
+      print('Image Height: ${imageData.height}');
+      print('Image Format: ${imageData.format}');
+
+      // Resize or preprocess the image if necessary
+      // For example, if your model expects 224x224 images:
+      img.Image resizedImage =
+          img.copyResize(imageData, width: 224, height: 224);
+
+      var output = List.filled(numClasses, 0).reshape(
+          [1, numClasses]); // Adjust shape based on your model's output
+
+      // Pass the resized image to the interpreter
+      _interpreter.run(resizedImage.getBytes(),
+          output); // Ensure resizedImage is in the correct format
+
+      print('Run the interpreter');
+      print('Detection results: $output');
+    } catch (e) {
+      print('Error taking snapshot or detecting objects: $e');
+    }
   }
 
   @override
@@ -131,12 +149,17 @@ class CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
                 // Custom painter to draw the rectangle
-                CustomPaint(
-                  size: Size(MediaQuery.of(context).size.width,
-                      MediaQuery.of(context).size.height),
-                  painter: RectanglePainter(),
-                ),
+                // CustomPaint(
+                //   size: Size(MediaQuery.of(context).size.width,
+                //       MediaQuery.of(context).size.height),
+                //   painter: RectanglePainter(),
+                // ),
               ],
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: _takeSnapshotAndDetectObjects,
+              tooltip: 'Take Snapshot',
+              child: Icon(Icons.camera_alt),
             ),
           );
         } else {
