@@ -49,10 +49,8 @@ dependencies:
   google_mlkit_text_recognition: ^0.11.0
   image: ^4.2.0
   path_provider: ^2.0.11  # Add this line
-  tflite_flutter: ^0.11.0
-  tflite_v2: ^1.0.0
-
   o3d: ^3.1.0
+  tflite_flutter: ^0.11.0
 
 dev_dependencies:
   flutter_test:
