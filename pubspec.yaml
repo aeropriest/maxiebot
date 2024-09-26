@@ -81,6 +81,8 @@ flutter:
       - assets/tell-me_en_ios_v3_0_0.ppn
       - assets/what-do-you-see_en_ios_v3_0_0.ppn
       - assets/fruits_model.tflite
+      - assets/arrow_model.tflite
+      - assets/arrow_labels.txt
       - assets/disney_style_character.glb
       - .env
 

@@ -1,4 +1,3 @@
-// https://www.youtube.com/watch?v=7Q_rRAORBhY
 // https://stackoverflow.com/questions/78043904/interpreter-returned-output-of-shape-1-2-while-shape-of-output-provided-as-a
 import 'dart:io';
 import 'package:camera/camera.dart';
