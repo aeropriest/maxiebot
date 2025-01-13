@@ -7,8 +7,6 @@ void main() async {
   // OpenAI.apiKey = '';
 
   await Gemini.init(
-      apiKey:
-          'AIzaSyAAF2ge_4OszRJdJVT7fPpJtxMZuQ--o_Y'); // Replace with your actual API key
 }
 
 class MyApp extends StatelessWidget {
