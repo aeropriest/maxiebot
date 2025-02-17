@@ -67,19 +67,25 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     setState(() => _isListening = true);
-    _speechToText.listen(
-      onResult: (SpeechRecognitionResult result) {
-        setState(() {
-          _voiceText = result.recognizedWords;
-          _controller.text = _voiceText;
-        });
-        print("Recognized words: ${_controller.text}");
-      },
-      listenFor: const Duration(seconds: 10),
-      pauseFor: const Duration(seconds: 3),
-      onSoundLevelChange: (level) => print("sound level $level"),
-      cancelOnError: true,
-    );
+    try {
+      await _speechToText.listen(
+        onResult: (SpeechRecognitionResult result) {
+          setState(() {
+            _voiceText = result.recognizedWords;
+            _controller.text = _voiceText;
+          });
+          print("Recognized words: ${_controller.text}");
+        },
+        listenFor: const Duration(seconds: 30), // Extend listen duration
+        pauseFor: const Duration(seconds: 3),
+        onSoundLevelChange: (level) => print("sound level $level"),
+        cancelOnError: true,
+      );
+    } catch (e) {
+      print("Error during speech recognition: $e");
+      setState(
+          () => _isListening = false); // Ensure button reflects stopped state
+    }
   }
 
   void _stopListening() {
@@ -95,25 +101,25 @@ class _MyHomePageState extends State<MyHomePage> {
       'image': 'assets/images/bible.png',
       'label': 'Bible',
       'prompt':
-          'Answer as a biblical scholar in 4-5 small sentences in simple english for 4-8 years old'
+          'Answer as a biblical scholar in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted'
     },
     {
       'image': 'assets/images/history.png',
       'label': 'History',
       'prompt':
-          'Respond from a historical perspective in 4-5 small sentences in simple english for 4-8 years old'
+          'Respond from a historical perspective in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted'
     },
     {
       'image': 'assets/images/science.png',
       'label': 'Science',
       'prompt':
-          'Provide scientifically accurate answers in 4-5 small sentences in simple english for 4-8 years old'
+          'Provide scientifically accurate answers in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted'
     },
     {
       'image': 'assets/images/language.png',
       'label': 'Language',
       'prompt':
-          'Focus on linguistic analysis in 4-5 small sentences in simple english for 4-8 years old'
+          'Focus on linguistic analysis in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted'
     },
   ];
 
@@ -149,7 +155,6 @@ class _MyHomePageState extends State<MyHomePage> {
       }, onError: (error) {
         print("Error in streaming response: $error");
       });
-
       _controller.clear();
     }
   }
@@ -172,9 +177,9 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       body: Column(
         children: [
-          const SizedBox(height: 10),
+          const SizedBox(height: 30),
           SizedBox(
-            height: 116,
+            height: 120,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: personas.length,
@@ -210,6 +215,8 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             ),
           ),
+          const SizedBox(
+              height: 8), // Reduced space between persona list and message list
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -241,32 +248,66 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 26.0),
             child: Row(
+              // Wrap with Row
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (_isListening) {
-                        _stopListening();
-                      } else {
-                        _startListening();
-                      }
+                  // Wrap with Expanded
+                  child: Listener(
+                    onPointerDown: (details) {
+                      _startListening();
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isListening ? Colors.red : Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      textStyle: const TextStyle(fontSize: 18),
-                    ),
-                    child: Text(
-                      _isListening ? 'Release to Send' : 'Press and Ask',
-                      style: const TextStyle(color: Colors.white),
+                    onPointerUp: (details) {
+                      _stopListening();
+                    },
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            _isListening ? Colors.red : Colors.blue,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        textStyle: const TextStyle(fontSize: 18),
+                      ),
+                      child: Text(
+                        _isListening ? 'Release to Send' : 'Press and Ask',
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
-          ),
+          )
+
+          // Padding(
+          // padding: const EdgeInsets.fromLTRB(
+          //     8.0, 8.0, 8.0, 26.0), // Added bottom padding
+          //   child: Row(
+          //     children: [
+          //       Expanded(
+          //         child: ElevatedButton(
+          //           onPressed: () {
+          //             if (_isListening) {
+          //               _stopListening();
+          //             } else {
+          //               _startListening();
+          //             }
+          //           },
+          //           style: ElevatedButton.styleFrom(
+          //             backgroundColor: _isListening ? Colors.red : Colors.blue,
+          //             padding: const EdgeInsets.symmetric(vertical: 15),
+          //             textStyle: const TextStyle(fontSize: 18),
+          //           ),
+          //           child: Text(
+          //             _isListening ? 'Release to Send' : 'Hold Down to Ask',
+          //             style: const TextStyle(color: Colors.white),
+          //           ),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ),
         ],
       ),
     );
