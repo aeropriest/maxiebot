@@ -46,6 +46,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isListening = false;
   String _voiceText = '';
   bool _speechEnabled = false;
+  final ValueNotifier<bool> _isTextToSpeechEnabled = ValueNotifier<bool>(false);
+  bool isTextToSpeechEnabled = false; // Track text-to-speech state
 
   @override
   void initState() {
@@ -101,25 +103,25 @@ class _MyHomePageState extends State<MyHomePage> {
       'image': 'assets/images/bible.png',
       'label': 'Bible',
       'prompt':
-          'Answer as a biblical scholar in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted'
+          'Answer as a biblical scholar in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted with emojis'
     },
     {
       'image': 'assets/images/history.png',
       'label': 'History',
       'prompt':
-          'Respond from a historical perspective in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted'
+          'Respond from a historical perspective in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted with emojis'
     },
     {
       'image': 'assets/images/science.png',
       'label': 'Science',
       'prompt':
-          'Provide scientifically accurate answers in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted'
+          'Provide scientifically accurate answers in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted with emojis'
     },
     {
       'image': 'assets/images/language.png',
       'label': 'Language',
       'prompt':
-          'Focus on linguistic analysis in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted'
+          'Focus on linguistic analysis in 4-5 small sentences in simple english for 4-8 years old, keep it light hearted with emojis'
     },
   ];
 
@@ -139,17 +141,28 @@ class _MyHomePageState extends State<MyHomePage> {
       final prompt = _selectedIndex != -1
           ? '${personas[_selectedIndex]['prompt']!} $userInput'
           : userInput;
-
       final responseStream = gemini.streamGenerateContent(prompt);
 
       responseStream.listen((event) {
         setState(() {
           print(event.output);
-          _messages.add(ChatMessage(
-            user: false,
-            createdAt: DateTime.now(),
-            text: event.output ?? '',
-          ));
+          if (_messages.isNotEmpty && !_messages.last.user) {
+            // Append to the last message (if it's not a user message)
+            _messages.last = ChatMessage(
+              user: false,
+              createdAt:
+                  _messages.last.createdAt, // Keep the original timestamp
+              text: _messages.last.text +
+                  (event.output ?? ''), // Append the new text
+            );
+          } else {
+            // Add a new message if the list is empty or the last message is a user message
+            _messages.add(ChatMessage(
+              user: false,
+              createdAt: DateTime.now(),
+              text: event.output ?? '',
+            ));
+          }
         });
         _scrollToBottom();
       }, onError: (error) {
@@ -169,6 +182,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     _controller.dispose();
     _speechToText.stop();
+    _isTextToSpeechEnabled.dispose();
     super.dispose();
   }
 
@@ -242,6 +256,24 @@ class _MyHomePageState extends State<MyHomePage> {
                             const TextStyle(fontSize: 14, letterSpacing: -0.6),
                       ),
                     ),
+                    trailing: !isUserMessage
+                        ? IconButton(
+                            icon: Icon(
+                              isTextToSpeechEnabled
+                                  ? Icons.volume_up
+                                  : Icons.volume_off,
+                              color: Colors.blue,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                isTextToSpeechEnabled = !isTextToSpeechEnabled;
+                                print(
+                                    'Speaker toggle pressed for message: ${message.text}, enabled: $isTextToSpeechEnabled');
+                                // TODO: Implement Text-to-Speech Functionality here
+                              });
+                            },
+                          )
+                        : null,
                   ),
                 );
               },
@@ -278,36 +310,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-          )
-
-          // Padding(
-          // padding: const EdgeInsets.fromLTRB(
-          //     8.0, 8.0, 8.0, 26.0), // Added bottom padding
-          //   child: Row(
-          //     children: [
-          //       Expanded(
-          //         child: ElevatedButton(
-          //           onPressed: () {
-          //             if (_isListening) {
-          //               _stopListening();
-          //             } else {
-          //               _startListening();
-          //             }
-          //           },
-          //           style: ElevatedButton.styleFrom(
-          //             backgroundColor: _isListening ? Colors.red : Colors.blue,
-          //             padding: const EdgeInsets.symmetric(vertical: 15),
-          //             textStyle: const TextStyle(fontSize: 18),
-          //           ),
-          //           child: Text(
-          //             _isListening ? 'Release to Send' : 'Hold Down to Ask',
-          //             style: const TextStyle(color: Colors.white),
-          //           ),
-          //         ),
-          //       ),
-          //     ],
-          //   ),
-          // ),
+          ),
         ],
       ),
     );
