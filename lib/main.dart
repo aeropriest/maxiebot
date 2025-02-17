@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Maxie Bot',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Hi ! I am Maxie..'),
@@ -42,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
   final List<ChatMessage> _messages = [];
   final ScrollController _scrollController = ScrollController();
-  int _selectedIndex = -1;
+  int _selectedIndex = 0;
 
   final List<Map<String, String>> personas = [
     {
@@ -90,23 +90,24 @@ class _MyHomePageState extends State<MyHomePage> {
           ? '${personas[_selectedIndex]['prompt']!} $userInput'
           : userInput;
 
-      gemini.text(prompt).then((value) {
-        final results = value?.output ?? 'No response';
-        _controller.clear(); // Clear the text field after sending
+      // Start streaming response from Gemini API
+      final responseStream = gemini.streamGenerateContent(prompt);
 
-        if (value != null && value.output != null) {
-          print(value.output);
-          _controller.clear();
-          setState(() {
-            _messages.add(ChatMessage(
-              user: false,
-              createdAt: DateTime.now(),
-              text: results,
-            ));
-          });
-          _scrollToBottom();
-        }
+      responseStream.listen((event) {
+        // Handle each word as it comes in
+        setState(() {
+          _messages.add(ChatMessage(
+            user: false,
+            createdAt: DateTime.now(),
+            text: event.output ?? '', // Add each part of the output
+          ));
+        });
+        _scrollToBottom(); // Scroll to the bottom after updating messages
+      }, onError: (error) {
+        print("Error in streaming response: $error");
       });
+
+      _controller.clear(); // Clear the text field after sending
     }
   }
 
@@ -122,9 +123,9 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Column(
         children: [
           // Adding SizedBox for extra space
-          const SizedBox(height: 40),
+          const SizedBox(height: 10),
           SizedBox(
-            height: 125, // Increased height to accommodate labels
+            height: 116, // Increased height to accommodate labels
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: personas.length,
@@ -135,7 +136,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(2),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 0, horizontal: 4),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: _selectedIndex == index
@@ -148,7 +150,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         margin: const EdgeInsets.all(16),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 0),
                       Text(
                         persona['label']!,
                         textAlign: TextAlign.center,
@@ -176,14 +178,12 @@ class _MyHomePageState extends State<MyHomePage> {
                         : Colors.white,
                   ),
                   child: ListTile(
-                    leading: isUserMessage
-                        ? const Icon(Icons.question_answer, color: Colors.blue)
-                        : const Icon(Icons.send, color: Colors.green),
                     title: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 0.0),
                       child: Text(
                         message.text,
-                        style: const TextStyle(fontSize: 14),
+                        style:
+                            const TextStyle(fontSize: 14, letterSpacing: -0.6),
                       ),
                     ),
                   ),
