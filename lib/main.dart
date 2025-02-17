@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:dart_openai/dart_openai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import flutter_dotenv
 
 void main() async {
+  await dotenv.load(fileName: ".env"); // Load the .env file
   runApp(const MyApp());
   // OpenAI.apiKey = '';
 
-  await Gemini.init(
+  await Gemini.init(apiKey: dotenv.env['GEMINI_API_KEY']!);
 }
 
 class MyApp extends StatelessWidget {
@@ -15,12 +17,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Gappu App',
+      title: 'Maxie Bot',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Hi ! I am Maxie..'),
     );
   }
 }
@@ -119,10 +121,10 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
+      // appBar: AppBar(
+      //   backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      //   title: Text(widget.title),
+      // ),
       body: Column(
         children: [
           Expanded(
