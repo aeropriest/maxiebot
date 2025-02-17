@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:dart_openai/dart_openai.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import flutter_dotenv
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter is initialized
   await dotenv.load(fileName: ".env"); // Load the .env file
-  runApp(const MyApp());
-  // OpenAI.apiKey = '';
 
   await Gemini.init(apiKey: dotenv.env['GEMINI_API_KEY']!);
+
+  runApp(const MyApp());
+  // OpenAI.apiKey = '';
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
@@ -40,6 +42,30 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _controller = TextEditingController();
   final List<ChatMessage> _messages = [];
   final ScrollController _scrollController = ScrollController();
+  int _selectedIndex = -1;
+
+  final List<Map<String, String>> personas = [
+    {
+      'image': 'assets/images/bible.png',
+      'label': 'Bible',
+      'prompt': 'Answer as a biblical scholar'
+    },
+    {
+      'image': 'assets/images/history.png',
+      'label': 'History',
+      'prompt': 'Respond from a historical perspective'
+    },
+    {
+      'image': 'assets/images/science.png',
+      'label': 'Science',
+      'prompt': 'Provide scientifically accurate answers'
+    },
+    {
+      'image': 'assets/images/language.png',
+      'label': 'Language',
+      'prompt': 'Focus on linguistic analysis'
+    },
+  ];
 
   void _sendMessage() {
     final userInput = _controller.text;
@@ -54,10 +80,13 @@ class _MyHomePageState extends State<MyHomePage> {
         ));
       });
 
-      // Call Gemini API to get the answer
+      // Call Gemini API with persona context
       final gemini = Gemini.instance;
+      final prompt = _selectedIndex != -1
+          ? '${personas[_selectedIndex]['prompt']!} $userInput'
+          : userInput;
 
-      gemini.text(userInput).then((value) {
+      gemini.text(prompt).then((value) {
         final results = value?.output ?? 'No response';
         _controller.clear(); // Clear the text field after sending
 
@@ -74,45 +103,10 @@ class _MyHomePageState extends State<MyHomePage> {
           _scrollToBottom();
         }
       });
-
-      // // Scroll to the bottom of the list
-
-      // }).catchError((e) {
-      //   print(e);
-      // });
-      // bool first = true;
-      // print(userInput);
-      // gemini
-      //     .streamGenerateContent(userInput,
-      //         generationConfig:
-      //             GenerationConfig(temperature: 0.7, maxOutputTokens: 256))
-      //     .listen((value) {
-      //   print('Got the response...');
-      // if (value != null && value.output != null) {
-      //   print(value.output);
-      //   _controller.clear();
-      //   setState(() {
-      //     _messages.add(ChatMessage(
-      //       user: false,
-      //       createdAt: DateTime.now(),
-      //       text: value?.output ?? 'No response',
-      //     ));
-      //   });
-
-      //     // Scroll to the bottom of the list
-      //     _scrollToBottom();
-
-      //     // Log the output results
-      //     print('Output results: $value');
-      //   } else {
-      //     print('Received null or empty output from the response.');
-      //   }
-      // }).onError((e) => print(e));
     }
   }
 
   void _scrollToBottom() {
-    // Ensure the list view is scrolled to the bottom
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     }
@@ -121,12 +115,47 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      //   title: Text(widget.title),
-      // ),
       body: Column(
         children: [
+          SizedBox(
+            height: 120, // Increased height to accommodate labels
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: personas.length,
+              itemBuilder: (context, index) {
+                final persona = personas[index];
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedIndex = index),
+                  child: Container(
+                    width: 100, // Added width for better spacing
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      border: _selectedIndex == index
+                          ? Border.all(color: Colors.blue, width: 2)
+                          : null,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center, // Center content vertically
+                      children: [
+                        CircleAvatar(
+                          backgroundImage: AssetImage(persona['image']!),
+                          radius: 30,
+                        ),
+                        const SizedBox(
+                            height: 8), // Added spacing between image and text
+                        Text(
+                          persona['label']!,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -145,16 +174,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   child: ListTile(
                     leading: isUserMessage
-                        ? Icon(Icons.question_answer, color: Colors.blue)
-                        : Icon(Icons.send, color: Colors.green),
+                        ? const Icon(Icons.question_answer, color: Colors.blue)
+                        : const Icon(Icons.send, color: Colors.green),
                     title: Text(
                       message.text,
-                      // textAlign:
-                      //     isUserMessage ? TextAlign.right : TextAlign.left,
                     ),
-                    // trailing: isUserMessage
-                    //     ? null
-                    //     : Icon(Icons.send, color: Colors.green),
                   ),
                 );
               },
@@ -185,7 +209,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   iconSize: 30,
                   color: Colors.blue,
                   padding: const EdgeInsets.all(8.0),
-                  constraints: BoxConstraints(),
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),
@@ -196,6 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+@immutable
 class ChatMessage {
   final bool user;
   final DateTime createdAt;
