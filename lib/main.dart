@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
-import 'package:dart_openai/dart_openai.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import flutter_dotenv
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:meta/meta.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter is initialized
-  await dotenv.load(fileName: ".env"); // Load the .env file
-
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   await Gemini.init(apiKey: dotenv.env['GEMINI_API_KEY']!);
-
   runApp(const MyApp());
-  // OpenAI.apiKey = '';
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +42,53 @@ class _MyHomePageState extends State<MyHomePage> {
   final List<ChatMessage> _messages = [];
   final ScrollController _scrollController = ScrollController();
   int _selectedIndex = 0;
+  late stt.SpeechToText _speechToText;
+  bool _isListening = false;
+  String _voiceText = '';
+  bool _speechEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeechToText();
+  }
+
+  Future<void> _initSpeechToText() async {
+    _speechToText = stt.SpeechToText();
+    _speechEnabled = await _speechToText.initialize();
+    setState(() {});
+  }
+
+  void _startListening() async {
+    if (!_speechEnabled) {
+      print(
+          'Speech recognition not enabled or permission denied. Check microphone permissions.');
+      return;
+    }
+
+    setState(() => _isListening = true);
+    _speechToText.listen(
+      onResult: (SpeechRecognitionResult result) {
+        setState(() {
+          _voiceText = result.recognizedWords;
+          _controller.text = _voiceText;
+        });
+        print("Recognized words: ${_controller.text}");
+      },
+      listenFor: const Duration(seconds: 10),
+      pauseFor: const Duration(seconds: 3),
+      onSoundLevelChange: (level) => print("sound level $level"),
+      cancelOnError: true,
+    );
+  }
+
+  void _stopListening() {
+    setState(() => _isListening = false);
+    _speechToText.stop();
+    if (_controller.text.isNotEmpty) {
+      _sendMessage();
+    }
+  }
 
   final List<Map<String, String>> personas = [
     {
@@ -73,9 +119,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _sendMessage() {
     final userInput = _controller.text;
-
+    print(userInput);
     if (userInput.isNotEmpty) {
-      // Add user question to the messages list
       setState(() {
         _messages.add(ChatMessage(
           user: true,
@@ -84,30 +129,28 @@ class _MyHomePageState extends State<MyHomePage> {
         ));
       });
 
-      // Call Gemini API with persona context
       final gemini = Gemini.instance;
       final prompt = _selectedIndex != -1
           ? '${personas[_selectedIndex]['prompt']!} $userInput'
           : userInput;
 
-      // Start streaming response from Gemini API
       final responseStream = gemini.streamGenerateContent(prompt);
 
       responseStream.listen((event) {
-        // Handle each word as it comes in
         setState(() {
+          print(event.output);
           _messages.add(ChatMessage(
             user: false,
             createdAt: DateTime.now(),
-            text: event.output ?? '', // Add each part of the output
+            text: event.output ?? '',
           ));
         });
-        _scrollToBottom(); // Scroll to the bottom after updating messages
+        _scrollToBottom();
       }, onError: (error) {
         print("Error in streaming response: $error");
       });
 
-      _controller.clear(); // Clear the text field after sending
+      _controller.clear();
     }
   }
 
@@ -118,14 +161,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    _speechToText.stop();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
-          // Adding SizedBox for extra space
           const SizedBox(height: 10),
           SizedBox(
-            height: 116, // Increased height to accommodate labels
+            height: 116,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: personas.length,
@@ -196,27 +245,24 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: InputDecoration(
-                      hintText: 'Type your question...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 10.0,
-                        horizontal: 20.0,
-                      ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_isListening) {
+                        _stopListening();
+                      } else {
+                        _startListening();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isListening ? Colors.red : Colors.blue,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      textStyle: const TextStyle(fontSize: 18),
+                    ),
+                    child: Text(
+                      _isListening ? 'Release to Send' : 'Press and Ask',
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
-                  iconSize: 30,
-                  color: Colors.blue,
-                  padding: const EdgeInsets.all(8.0),
-                  constraints: const BoxConstraints(),
                 ),
               ],
             ),
