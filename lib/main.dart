@@ -48,22 +48,26 @@ class _MyHomePageState extends State<MyHomePage> {
     {
       'image': 'assets/images/bible.png',
       'label': 'Bible',
-      'prompt': 'Answer as a biblical scholar'
+      'prompt':
+          'Answer as a biblical scholar in 4-5 small sentences in simple english for 4-8 years old'
     },
     {
       'image': 'assets/images/history.png',
       'label': 'History',
-      'prompt': 'Respond from a historical perspective'
+      'prompt':
+          'Respond from a historical perspective in 4-5 small sentences in simple english for 4-8 years old'
     },
     {
       'image': 'assets/images/science.png',
       'label': 'Science',
-      'prompt': 'Provide scientifically accurate answers'
+      'prompt':
+          'Provide scientifically accurate answers in 4-5 small sentences in simple english for 4-8 years old'
     },
     {
       'image': 'assets/images/language.png',
       'label': 'Language',
-      'prompt': 'Focus on linguistic analysis'
+      'prompt':
+          'Focus on linguistic analysis in 4-5 small sentences in simple english for 4-8 years old'
     },
   ];
 
@@ -117,8 +121,10 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       body: Column(
         children: [
+          // Adding SizedBox for extra space
+          const SizedBox(height: 40),
           SizedBox(
-            height: 120, // Increased height to accommodate labels
+            height: 125, // Increased height to accommodate labels
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: personas.length,
@@ -126,31 +132,28 @@ class _MyHomePageState extends State<MyHomePage> {
                 final persona = personas[index];
                 return GestureDetector(
                   onTap: () => setState(() => _selectedIndex = index),
-                  child: Container(
-                    width: 100, // Added width for better spacing
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      border: _selectedIndex == index
-                          ? Border.all(color: Colors.blue, width: 2)
-                          : null,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center, // Center content vertically
-                      children: [
-                        CircleAvatar(
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: _selectedIndex == index
+                              ? Border.all(color: Colors.blue, width: 2)
+                              : null,
+                        ),
+                        child: CircleAvatar(
                           backgroundImage: AssetImage(persona['image']!),
                           radius: 30,
                         ),
-                        const SizedBox(
-                            height: 8), // Added spacing between image and text
-                        Text(
-                          persona['label']!,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                        margin: const EdgeInsets.all(16),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        persona['label']!,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 );
               },
@@ -176,8 +179,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     leading: isUserMessage
                         ? const Icon(Icons.question_answer, color: Colors.blue)
                         : const Icon(Icons.send, color: Colors.green),
-                    title: Text(
-                      message.text,
+                    title: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Text(
+                        message.text,
+                        style: const TextStyle(fontSize: 14),
+                      ),
                     ),
                   ),
                 );
@@ -194,7 +201,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     decoration: InputDecoration(
                       hintText: 'Type your question...',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30.0),
+                        borderRadius: BorderRadius.circular(8.0),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 10.0,
